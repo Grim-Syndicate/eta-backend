@@ -1,0 +1,8 @@
+export default {
+	"BASE_COMMON": 1,
+	"BASE_RARE": 1.5,
+	"BASE_LEGENDARY": 1.75,
+	"BASE_MYTHIC": 2,
+	"BASE_ANCIENT": 2.5,
+	"BASE_GOLDEN_ANCIENT": 3
+};
