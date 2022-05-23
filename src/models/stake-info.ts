@@ -1,10 +1,26 @@
-import mongoose from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
 
-let Schema = mongoose.Schema;
+export interface IStakeInfo {
+  _id: Types.ObjectId
+  tokenID: Types.ObjectId
+  stakedTimestamp:number
+  unstakedTimestamp:number
+  claimedTimestamp:number
+  penaltyTimestamp:number
+  hasClaimablePoints:boolean
+  lastUpdated:boolean
+  pendingTransactions:IPendingTransaction[]
+}
 
-const pendingTransactionSchema = new mongoose.Schema({
+export interface IPendingTransaction {
+  _id: Types.ObjectId
+  transaction: Types.ObjectId
+  timestamp:number
+}
+
+const pendingTransactionSchema = new Schema({
     transaction: {
-      type: mongoose.Schema.Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'Transaction'
     },
     timestamp: Number
@@ -13,9 +29,9 @@ const pendingTransactionSchema = new mongoose.Schema({
   versionKey: false
 });
 
-let stakeInfoSchema = new Schema({
+let stakeInfoSchema = new Schema<IStakeInfo>({
   tokenID: {
-    type: mongoose.Schema.Types.ObjectId, 
+    type: Schema.Types.ObjectId, 
     ref: 'Token',
     index: true
   },
@@ -36,6 +52,6 @@ let stakeInfoSchema = new Schema({
 
 stakeInfoSchema.plugin(require('mongoose-autopopulate'));
 
-const StakeInfo = mongoose.model('StakeInfo', stakeInfoSchema);
+const StakeInfo = model<IStakeInfo>('StakeInfo', stakeInfoSchema);
 
 export default StakeInfo;
