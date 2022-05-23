@@ -210,6 +210,9 @@ function getGrimMetadata(token) {
 		let data = fs.readFileSync(path.resolve(grimsMetaPath, token + '.json'), 'utf8');
 		return JSON.parse(data);
 	} catch (e) {
+		if (e.code === 'ENOENT') {
+			return null;
+		}
 		console.log(e);
 	}
 	return null;
@@ -251,7 +254,7 @@ function getAllDaemonsMetadata(tokensInWallet) {
 	return daemonsMetadata;
 }
 
-function getDaemonMetadata(token) {
+function getDaemonMetadata(token:string) {
 	if (!token) {
 		return null;
 	}
@@ -260,6 +263,9 @@ function getDaemonMetadata(token) {
 		let data = fs.readFileSync(path.resolve(daemonsMetaPath, token + '.json'), 'utf8');
 		return JSON.parse(data);
 	} catch (e) {
+		if (e.code === 'ENOENT') {
+			return null;
+		}
 		console.log(e);
 	}
 	return null;
