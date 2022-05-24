@@ -1,0 +1,26 @@
+name: Dev CI
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  deployment:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+        with:
+          clean: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restart server application
+        run: sudo -u nodejs -i pm2 restart ETA
+
+      - name: Create build file
+        run: |
+          touch .build
+          echo ${{ github.run_id }}.${{ github.run_number }}.${{ github.run_attempt }} > .build
+          cat .build
