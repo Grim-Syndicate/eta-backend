@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: su nodejs npm ci
+        run: npm ci
 
       - name: Restart server application
-        run: su nodejs pm2 restart ETA
+        run: sudo -u nodejs -i pm2 restart ETA
