@@ -116,6 +116,16 @@ app.get("/auction-house", async (req, res) => {
   res.json(result);
 });
 
+app.get("/auction-house/past-raffles", async (req, res) => {
+    const result = await auction.getPastRaffles();
+    res.json(result);
+});
+  
+app.get("/auction-house/my-raffles", async (req, res) => {
+    const result = await auction.getMyRaffles(req.query.wallet);
+    res.json(result);
+});
+
 app.get("/auction-house/buy-tickets", async (req, res) => {
   let result = await auction.buyTickets(req.query.wallet, req.query.raffle, req.query.tickets, req.query.message, req.query.bh);
   res.json(result);
