@@ -18,3 +18,9 @@ jobs:
 
       - name: Restart server application
         run: sudo -u nodejs -i pm2 restart ETA
+
+      - name: Create build file
+        run: |
+          touch .build
+          echo ${{ github.run_id }}.${{ github.run_number }}.${{ github.run_attempt }} > .build
+          cat .build
