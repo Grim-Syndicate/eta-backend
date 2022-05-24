@@ -57,6 +57,85 @@ export async function getActiveAuctions(walletID) {
 	}
 }
 
+export async function getPastRaffles() {
+	try {
+		const timestamp = Constants.getTimestamp();
+
+		let raffles = await Models.RaffleCampaign.find({
+			enabled: true,
+			$and: [{enabledTo: {$lte: timestamp}}]
+		}).sort({'enabledTo': 1});
+
+		let results = [];
+
+		for (let i in raffles) {
+			let entries = raffles[i].toJSON();
+			let totalEntries = await Models.RaffleEntries.find({raffleID: raffles[i]._id});
+			let totalTickets = 0;
+			for (let i in totalEntries) {
+				totalTickets += totalEntries[i].tickets;
+			}
+			entries.totalTickets = totalTickets;
+
+			results.push(entries);
+		}
+
+		return {
+			success: true,
+			raffles: results,
+		}
+	} catch {
+		
+	}
+}
+
+export async function getMyRaffles(walletID) {
+	try {
+		const wallet = await Functions.getWalletJSON(walletID);
+		const raffleEntries = await Models.RaffleEntries
+			.find({
+				walletID: wallet._id
+			})
+			.sort({"_id": -1});
+
+		const raffleIDs = raffleEntries.map(entry => entry.raffleID)
+		const raffles = await Models.RaffleCampaign.find({ $in: { _id: raffleIDs }});
+		
+		const raffleMap = {}
+
+		for (let i in raffles) {
+			const raffle = raffles[i].toJSON();
+			raffleMap[raffle._id] = raffle
+		}
+
+		const results = [];
+
+		for (let i in raffleEntries) {
+			const entry = raffleEntries[i].toJSON();
+			entry.entryDate = dateFromObjectId(entry._id);
+			const raffle = raffleMap[entry.raffleID]
+			entry.totalCost = raffle.ticketPrice * entry.tickets;
+			entry.raffle = raffle
+			const timestamp = Constants.getTimestamp();
+			entry.raffle.ended = timestamp > raffle.enabledTo;
+			results.push(entry);
+		}
+
+		return {
+			success: true,
+			raffles: results
+		};
+	} catch (err) {
+		console.log(err, walletID);
+
+		return {
+			success: false,
+			error: 'Getting My Raffles Failed'
+		};
+	}
+	
+}
+
 export async function buyTickets(wallet, raffleID, tickets, message, blockhash) {
 	const isTicketAmountGreaterThanOne = tickets >= 1
 	const isTicketAmountWholeNumber  = Number.isInteger(tickets)
@@ -154,3 +233,8 @@ export async function buyTickets(wallet, raffleID, tickets, message, blockhash) 
 		raffleEntries: raffleEntries
 	}
 }
+
+const dateFromObjectId = (objectId) => {
+	const objectIdStr = objectId.toString().substring(0, 8)
+	return parseInt(objectIdStr, 16) * 1000;
+};

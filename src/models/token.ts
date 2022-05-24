@@ -1,10 +1,18 @@
-import mongoose from 'mongoose';
+import { Schema, Types, model, HydratedDocument } from 'mongoose';
 import Constants from '../constants';
-import StakeInfo from './stake-info';
+import StakeInfo, { IStakeInfo } from './stake-info';
 
-let Schema = mongoose.Schema;
+export interface IToken {
+  _id: Types.ObjectId
+  walletID: Types.ObjectId
+  mint:string
+  inWallet:number
+  isStaked:boolean
 
-const rewardsSchema = new mongoose.Schema({
+  getLaststakedInfo: () => Promise<HydratedDocument<IStakeInfo>>
+}
+
+const rewardsSchema = new Schema({
     type: String,
     amount: Number
 }, {
@@ -12,9 +20,9 @@ const rewardsSchema = new mongoose.Schema({
   versionKey: false
 });
 
-let tokenSchema = new Schema({
+let tokenSchema = new Schema<IToken>({
   walletID: {
-    type: mongoose.Schema.Types.ObjectId, 
+    type: Schema.Types.ObjectId, 
     ref: 'WalletContent',
     index: true
   },
@@ -95,7 +103,7 @@ tokenSchema.methods.getLaststakedInfo = async function() {
   return this.lastStaked;
 };
 
-tokenSchema.methods.handleWalletState = async function(inWallet) {
+tokenSchema.methods.handleWalletState = async function(inWallet:number) {
   if (this.inWallet === Constants.IN_WALLET && inWallet !== Constants.IN_WALLET) {
     let timestamp = new Date().getTime();
     let staked = await this.getLaststakedInfo();
@@ -107,17 +115,17 @@ tokenSchema.methods.handleWalletState = async function(inWallet) {
   }
 
   if (this.inWallet !== inWallet) {
-    await mongoose.model('Token', tokenSchema).findByIdAndUpdate(this._id, {
+    await model('Token', tokenSchema).findByIdAndUpdate(this._id, {
       inWallet: inWallet
     })
   }
 
-  return await mongoose.model('Token', tokenSchema).findById(this._id).populate('stakedInfo');
+  return await model('Token', tokenSchema).findById(this._id).populate('stakedInfo');
 };
 
 tokenSchema.set('toObject', { virtuals: true });
 tokenSchema.set('toJSON', { virtuals: true });
 
-const Token = mongoose.model('Token', tokenSchema);
+const Token = model<IToken>('Token', tokenSchema);
 
 export default Token;

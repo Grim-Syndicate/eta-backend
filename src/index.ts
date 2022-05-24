@@ -34,160 +34,170 @@ app.use(bodyParser.urlencoded({
   extended: true
 })); 
 
-app.get('/api', async (req, res) => {
+app.get('/', async (req, res) => {
   // const clientPromise = require('./mongodb-client');
   // const client = await clientPromise;
   res.json({ message: "Access denied!" });
   // res.status(200).json({ dbName: client.db().databaseName });
 });
 
-app.get("/api/wl", async (req, res) => {
+app.get("/wl", async (req, res) => {
   let result = await staking.addWhitelist(req.query.wallet, req.query.secret);
   res.json(result);
 });
 
-app.get("/api/user", async (req, res) => {
+app.get("/user", async (req, res) => {
   let result = await Functions.getUser(req.query.wallet);
   res.json(result);
 });
 
-app.get("/api/tokens", async (req, res) => {
+app.get("/tokens", async (req, res) => {
   let result = await staking.doGetTokensInWallet(req.query.wallet);
   res.json(result);
 });
 
-app.get("/api/grims-state", async (req, res) => {
+app.get("/grims-state", async (req, res) => {
   let result = await staking.doGetGrimsState(req.query.wallet);
   res.json(result);
 });
 
-app.get("/api/verify-astra", async (req, res) => {
+app.get("/verify-astra", async (req, res) => {
   let result = await staking.verifyAstra(req.query.wallet, req.query.amount);
   res.json(result);
 });
 
-app.get("/api/quests", async (req, res) => {
+app.get("/quests", async (req, res) => {
   let result = await questing.getAvailableQuests();
   res.json(result);
 });
 
-app.get("/api/quest/:id", async (req, res) => {
+app.get("/quest/:id", async (req, res) => {
   let result = await questing.getQuest(req.params.id);
   res.json(result);
 });
 
-app.post("/api/quests/start", async (req, res) => {
+app.post("/quests/start", async (req, res) => {
   let result = await questing.startQuest(req.body.wallet, req.body.quest, req.body.participants, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.post("/api/quests/finish", async (req, res) => {
+app.post("/quests/finish", async (req, res) => {
   let result = await questing.finishQuest(req.body.wallet, req.body.quest, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.post("/api/quests/claim", async (req, res) => {
+app.post("/quests/claim", async (req, res) => {
   let result = await questing.claimRewards(req.body.wallet, req.body.quest, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.get("/api/quests/active", async (req, res) => {
+app.get("/quests/active", async (req, res) => {
   let result = await questing.getStartedQuests(req.query.wallet, req.query.quest);
   res.json(result);
 });
 
-app.get("/api/quests/start", async (req, res) => {
+app.get("/quests/start", async (req, res) => {
   let result = await questing.startQuest(req.query.wallet, req.query.quest, req.query.participants, req.query.message, req.query.bh);
   res.json(result);
 });
 
-app.get("/api/quests/finish", async (req, res) => {
+app.get("/quests/finish", async (req, res) => {
   let result = await questing.finishQuest(req.query.wallet, req.query.quest, req.query.message, req.query.bh);
   res.json(result);
 });
 
-app.get("/api/quests/claim", async (req, res) => {
+app.get("/quests/claim", async (req, res) => {
   let result = await questing.claimRewards(req.query.wallet, req.query.quest, req.query.message, req.query.bh);
   res.json(result);
 });
 
-app.get("/api/auction-house", async (req, res) => {
+app.get("/auction-house", async (req, res) => {
   let result = await auction.getActiveAuctions(req.query.wallet);
   res.json(result);
 });
 
-app.get("/api/auction-house/buy-tickets", async (req, res) => {
+app.get("/auction-house/past-raffles", async (req, res) => {
+    const result = await auction.getPastRaffles();
+    res.json(result);
+});
+  
+app.get("/auction-house/my-raffles", async (req, res) => {
+    const result = await auction.getMyRaffles(req.query.wallet);
+    res.json(result);
+});
+
+app.get("/auction-house/buy-tickets", async (req, res) => {
   let result = await auction.buyTickets(req.query.wallet, req.query.raffle, req.query.tickets, req.query.message, req.query.bh);
   res.json(result);
 });
 
-app.post("/api/auction-house/buy-tickets", async (req, res) => {
+app.post("/auction-house/buy-tickets", async (req, res) => {
   let result = await auction.buyTickets(req.body.wallet, req.body.raffle, req.body.tickets, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.get("/api/public-state", async (req, res) => {
+app.get("/public-state", async (req, res) => {
   let result = await staking.doGetPublicState();
   res.json(result);
 });
 
-app.get("/api/transactions", async (req, res) => {
+app.get("/transactions", async (req, res) => {
   let result = await staking.getTransactions(req.query.wallet);
   res.json(result);
 });
 
-app.post("/api/claim-points", async (req, res) => {
+app.post("/claim-points", async (req, res) => {
   let result = await staking.doClaimPoints(req.body.wallet, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.post("/api/stake", async (req, res) => {
+app.post("/stake", async (req, res) => {
   let tokens = Array.isArray(req.body.tokens) ? req.body.tokens : [req.body.tokens];
   let result = await staking.doStake(req.body.wallet, tokens, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.post("/api/unstake", async (req, res) => {
+app.post("/unstake", async (req, res) => {
   let tokens = Array.isArray(req.body.tokens) ? req.body.tokens : [req.body.tokens];
   let result = await staking.doUnstake(req.body.wallet, tokens, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.post("/api/transfer", async (req, res) => {
+app.post("/transfer", async (req, res) => {
   let result = await staking.doTransfer(req.body.source, req.body.destination, req.body.amount, req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.get("/api/job/handle-transfers", async (req, res) => {
+app.get("/job/handle-transfers", async (req, res) => {
   const job = require('./jobs/handle-transfers');
   let result = await job.run();
   res.json(result);
 });
 
-app.get("/api/job/handle-quests", async (req, res) => {
+app.get("/job/handle-quests", async (req, res) => {
   const job = require('./jobs/handle-quests');
   let result = await job.run();
   res.json(result);
 });
 
-app.get("/api/job/grims-in-wallets", async (req, res) => {
+app.get("/job/grims-in-wallets", async (req, res) => {
   const job = require('./jobs/grims-in-wallets');
   let result = await job.run(req.query.num);
   res.json(result);
 });
 
-app.get("/api/job/sol-price", async (req, res) => {
+app.get("/job/sol-price", async (req, res) => {
   const job = require('./jobs/sol-price');
   let result = await job.run();
   res.json(result);
 });
 
-app.get("/api/int", async (req, res) => {
+app.get("/int", async (req, res) => {
   let result = await staking.doInternal();
   res.json(result);
 });
 
-app.get("/api/remove-penalty", async (req, res) => {
+app.get("/remove-penalty", async (req, res) => {
   let result = await staking.doRemovePenalty(req.query.wallet);
   res.json(result);
 });

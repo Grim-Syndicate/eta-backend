@@ -17,11 +17,11 @@ const grimsMetaPath = path.resolve(__dirname, '../../grims_raw_metadata');
 const daemonsMetaPath = path.resolve(__dirname, '../../daemons_raw_metadata');
 const messagePrefix = "Please sign this message for proof of address ownership: ";
 
-async function getWalletJSON(wallet) {
+async function getWalletJSON(wallet:string) {
 	let walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
 
 	if (!walletContentJSON) {
-		walletContentJSON = Models.WalletContent.create({wallet: wallet});
+		walletContentJSON = await Models.WalletContent.create({wallet: wallet});
 	}
 
 	return walletContentJSON;
@@ -31,7 +31,7 @@ async function getSimpleWalletJSON(wallet) {
 	let walletContentJSON = await Models.Wallet.findOne({wallet: wallet});
 
 	if (!walletContentJSON) {
-		walletContentJSON = Models.Wallet.create({wallet: wallet});
+		walletContentJSON = await Models.Wallet.create({wallet: wallet});
 	}
 
 	return walletContentJSON;
@@ -210,6 +210,9 @@ function getGrimMetadata(token) {
 		let data = fs.readFileSync(path.resolve(grimsMetaPath, token + '.json'), 'utf8');
 		return JSON.parse(data);
 	} catch (e) {
+		if (e.code === 'ENOENT') {
+			return null;
+		}
 		console.log(e);
 	}
 	return null;
@@ -251,7 +254,7 @@ function getAllDaemonsMetadata(tokensInWallet) {
 	return daemonsMetadata;
 }
 
-function getDaemonMetadata(token) {
+function getDaemonMetadata(token:string) {
 	if (!token) {
 		return null;
 	}
@@ -260,6 +263,9 @@ function getDaemonMetadata(token) {
 		let data = fs.readFileSync(path.resolve(daemonsMetaPath, token + '.json'), 'utf8');
 		return JSON.parse(data);
 	} catch (e) {
+		if (e.code === 'ENOENT') {
+			return null;
+		}
 		console.log(e);
 	}
 	return null;

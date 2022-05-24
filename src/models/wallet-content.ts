@@ -1,16 +1,32 @@
-import mongoose from 'mongoose';
-import Token from './token';
+import { Schema, Types, model, HydratedDocument } from 'mongoose';
+import Token, { IToken } from './token';
 import Constants from '../constants';
 
-const Schema = mongoose.Schema;
+export interface IWallet {
+  _id: Types.ObjectId
+  wallet:string
+  nonce:number
+  nonceTimestamp:number
+  pointsClaimed:number
+  pointsBalance:number
+  pendingBalance:number
+  isWhitelisted:boolean
+  //pendingTransactions
+  lastUpdated: number
+  lastChecked: number
+  firstLogin: number
+  walletTokens?: any[]
+
+  getToken: (token:string) => Promise<HydratedDocument<IToken>>
+}
 
 function newNonce() {
   return Math.floor(Math.random() * 100000000)
 }
 
-const pendingTransactionSchema = new mongoose.Schema({
+const pendingTransactionSchema = new Schema({
     transaction: {
-      type: mongoose.Schema.Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'Transaction'
     },
     amount: Number
@@ -57,7 +73,7 @@ let walletJSONSchema = {
   pendingTransactions: [pendingTransactionSchema]
 };
 
-let walletSchema = new Schema(walletJSONSchema, {versionKey: false});
+let walletSchema = new Schema<IWallet>(walletJSONSchema, {versionKey: false});
 
 walletSchema.methods.isNonceValid = function(token) {
   return this.nonceTimestamp + (20 * 60 * 1000) > Constants.getTimestamp();
@@ -74,7 +90,7 @@ walletSchema.methods.newNonce = async function() {
   });
 };
 
-let WalletModel = mongoose.model('Wallet', walletSchema, 'walletcontents');
+let WalletModel = model<IWallet>('Wallet', walletSchema, 'walletcontents');
 
 walletSchema
   .virtual('walletTokens', {
@@ -101,7 +117,7 @@ walletSchema.methods.getSimpleToken = function(token) {
   return tokenJSON;
 };
 
-walletSchema.methods.getToken = async function(token) {
+walletSchema.methods.getToken = async function(token:string) {
   return await Token.findOne({walletID: this._id, mint: token}).populate('stakedInfo');
 };
 
@@ -123,7 +139,7 @@ walletSchema.pre('save', function(next) {
 walletSchema.set('toObject', { virtuals: true });
 walletSchema.set('toJSON', { virtuals: true });
 
-const WalletContent = mongoose.model('WalletContent', walletSchema, 'walletcontents');
+const WalletContent = model('WalletContent', walletSchema, 'walletcontents');
 
 export default {
   Wallet: WalletModel,
