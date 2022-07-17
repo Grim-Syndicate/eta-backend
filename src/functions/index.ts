@@ -148,6 +148,14 @@ async function getUser(walletJSON, isNew = false) {
 	}
 }
 
+async function getUserRoles(wallet: string) {
+	const walletJSON = await getWalletJSON(wallet);
+	return { 
+		success: true,
+		roles: walletJSON.roles
+	}
+}
+
 async function getTokensInWallet(wallet) {
 	let list = {};
 
@@ -278,6 +286,7 @@ export default {
 	getWalletJSON: getWalletJSON,
 	getSimpleWalletJSON: getSimpleWalletJSON,
 	getUser: getUser,
+	getUserRoles: getUserRoles,
 	getTokensInWallet: getTokensInWallet,
 	getGrimsFromTokens: getGrimsFromTokens,
 	getGrimMetadata: getGrimMetadata,

@@ -1,6 +1,156 @@
 import Models from './models/index';
 import Constants from './constants';
 import Functions from './functions/index';
+import { CreateRaffleBody, UpdateRaffleWinnersBody } from 'models/auction-house';
+import { getRaffleWinners } from './functions/astra-raffle';
+const ObjectId = require('mongoose').Types.ObjectId;
+
+export async function createRaffle(body: CreateRaffleBody) {
+	if (!body.wallet || !body.message) {
+		return {
+			success: false,
+			error: 'Invalid wallet or message'
+		}
+	}
+	
+	let requiredVariables = [
+		"author",
+		"authorLink",
+		"image",
+		"ticketPrice",
+		"maxTickets"
+	];
+	for (let required of requiredVariables) {
+		if (!body.form[required]) {
+			return {
+				success: false,
+				error: `Missing ${required}`,
+			}
+		}
+	}
+	if (!body.form.title || !body.form.author || !body.form.authorLink || !body.form.image || !body.form.ticketPrice || !body.form.enabledFrom || !body.form.enabledTo || !body.form.maxTickets) {
+		return {
+			success: false,
+			error: 'Invalid Request'
+		}
+	}
+
+	const blockhash = body.blockhash;
+	const message = body.message;
+
+	let messageResult = false;
+	let action = 'create-edit-raffle';
+	let data = {
+		form: body.form,
+		wallet: body.wallet,
+	};
+
+	let walletJSON = await Functions.getWalletJSON(body.wallet);
+	if (!walletJSON.roles.includes("RAFFLE_CREATOR")) {
+		return {
+			success: false,
+			error: "You don't have access to this feature"
+		};
+	}
+
+
+	if (!blockhash) {
+		messageResult = await Functions.verifyMessage(walletJSON, action, data, message);
+	} else {
+		messageResult = await Functions.verifyTransaction(walletJSON, action, data, message, blockhash);
+	}
+
+	if (!messageResult) {
+		console.log('Verification Failed');
+		return {
+			success: false,
+			error: 'Verification Failed'
+		}
+	}
+
+	if (!body.id) {
+		console.log("generating new id");
+		body.id = ObjectId();
+	}
+	try {
+		await Models.RaffleCampaign.findOneAndUpdate({ _id: body.id}, body.form, { upsert: true });
+	} catch (e) {
+		console.log(e);
+
+		return {
+			success: false,
+			error: 'Creating Raffle Failed'
+		};
+	}
+
+	return {
+		success: true
+	}
+}
+
+
+export async function updateRaffleWinners(body: UpdateRaffleWinnersBody) {
+
+	if (!body.id) {
+		return {
+			success: false,
+			error: 'Invalid Request'
+		}
+	}
+	
+	const raffle = await Models.RaffleCampaign.findOne({_id: body.id});
+	if (!raffle) {
+		return {
+			success: false,
+			error: `No raffle found`
+		}
+	}
+
+	if (raffle.winners && raffle.winners.length > 0) {
+		
+		return {
+			success: true,
+			winners: raffle.winners
+		}
+	}
+	
+    const date = new Date();
+    const now = Math.floor(date.getTime());// / 1000);
+	if (now < raffle.enabledFrom) {
+		
+		return {
+			success: false,
+			error: `This raffle hasn't started yet`,
+		}
+    }
+    if (now < raffle.enabledTo) {
+		
+		return {
+			success: false,
+			error: `This raffle hasn't ended yet`,
+		}
+    }
+
+
+	const raffleResult = await getRaffleWinners(body.id, raffle.winnerCount, raffle.uniqueWinners);
+	if (raffleResult.error) {
+		
+		return {
+			success: false,
+			error: raffleResult.error
+		}
+	}
+	await Models.RaffleCampaign.findByIdAndUpdate(
+		body.id, 
+		{
+			winners: raffleResult.winners
+		}
+	);
+	return {
+		success: true,
+		winners: raffleResult.winners
+	}
+}
 
 export async function getActiveAuctions(walletID) {
 	if (!walletID) {
@@ -29,7 +179,20 @@ export async function getActiveAuctions(walletID) {
 				{$or: [{enabledFrom: {$exists: false}}, {enabledFrom: {$lte: timestamp}}]},
 				{$or: [{enabledTo: {$exists: false}}, {enabledTo: {$gte: timestamp}}]}
 			]
-		}).sort({'enabledTo': 1});
+		}).sort({'title': 1});
+
+		if (wallet.roles && wallet.roles.includes("RAFFLE_CREATOR")) {
+			let rafflesNotEnabled = await Models.RaffleCampaign.find({
+
+				$and: [
+					{ enabled: false },
+				],
+			}).sort({'title': 1});
+
+			let rafflesIds = raffles.map(a => a._id);
+			let notInRaffles = rafflesNotEnabled.filter(a => !rafflesIds.includes(a._id));
+			raffles = raffles.concat(notInRaffles);
+		}
 
 		let results = [];
 
@@ -45,8 +208,11 @@ export async function getActiveAuctions(walletID) {
 			entries.totalTickets = totalTickets;
 
 			results.push(entries);
-		}
-
+		} 
+		results.sort((a, b) => {
+			return a.title?.localeCompare(b.title);
+	
+		})
 		return {
 			success: true,
 			raffles: results,

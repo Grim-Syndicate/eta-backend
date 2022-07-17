@@ -6,6 +6,7 @@ let raffleCampaignSchema = new Schema({
   title: String,
   shortDescription: String,
   author: String,
+  authorLink: String,
   image: String,
   enabled: {
     type: Boolean,

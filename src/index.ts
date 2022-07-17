@@ -51,6 +51,11 @@ app.get("/user", async (req, res) => {
   res.json(result);
 });
 
+app.get("/userRoles", async (req, res) => {
+  let result = await Functions.getUserRoles(req.query?.wallet?.toString());
+  res.json(result);
+});
+
 app.get("/tokens", async (req, res) => {
   let result = await staking.doGetTokensInWallet(req.query.wallet);
   res.json(result);
@@ -135,6 +140,17 @@ app.post("/auction-house/buy-tickets", async (req, res) => {
   let result = await auction.buyTickets(req.body.wallet, req.body.raffle, req.body.tickets, req.body.message, req.body.bh);
   res.json(result);
 });
+
+app.post("/auction-house/create-raffle", async (req, res) => {
+  let result = await auction.createRaffle(req.body);
+  res.json(result);
+});
+
+app.post("/auction-house/update-raffle-winners", async (req, res) => {
+  let result = await auction.updateRaffleWinners(req.body);
+  res.json(result);
+});
+
 
 app.get("/public-state", async (req, res) => {
   let result = await staking.doGetPublicState();
