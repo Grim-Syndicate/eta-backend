@@ -11,7 +11,7 @@ import Constants from '../constants';
 
 import transactionFunctions from './transactions';
 import * as questingFunctions from './questing';
-import * as auctionHouseFunctions from './auction-house';
+import * as auctionHouseFunctions from './astra-raffle-house';
 
 const grimsMetaPath = path.resolve(__dirname, '../../grims_raw_metadata');
 const daemonsMetaPath = path.resolve(__dirname, '../../daemons_raw_metadata');

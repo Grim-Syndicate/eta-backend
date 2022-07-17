@@ -2,7 +2,7 @@ import Models from './models/index';
 import Constants from './constants';
 import Functions from './functions/index';
 import { CreateRaffleBody, UpdateRaffleWinnersBody } from 'models/auction-house';
-import { getRaffleWinners } from './functions/astra-raffle';
+import { getRaffleWinners } from './functions/astra-raffle-house';
 const ObjectId = require('mongoose').Types.ObjectId;
 
 export async function createRaffle(body: CreateRaffleBody) {
