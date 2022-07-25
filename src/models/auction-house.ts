@@ -23,3 +23,25 @@ export interface CreateRaffleBodyForm {
 export interface UpdateRaffleWinnersBody {
     id: string;
 }
+
+
+
+export interface CreateAuctionBody {
+    wallet: string;
+    message: string;
+    form: CreateAuctionBodyForm;
+    blockhash: number;
+    id: ObjectId;
+}
+export interface CreateAuctionBodyForm {
+	currentBid: number;
+    title: string;
+    description: string;
+    author: string;
+    authorLink: string;
+    image: string;
+    startingBid: number;
+    enabledFrom: number;
+    enabledTo: number;
+}
+

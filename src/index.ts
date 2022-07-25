@@ -6,6 +6,7 @@ import * as staking from './staking-mechanics';
 import * as questing from './questing';
 import * as auction from './auction-house';
 import Functions from './functions/index';
+import { bidOnAuction, createAuction, getActiveAuctions, getAuctionInfo } from './functions/astra-auction-house';
 
 const app = express();
 
@@ -117,8 +118,39 @@ app.get("/quests/claim", async (req, res) => {
 });
 
 app.get("/auction-house", async (req, res) => {
-  let result = await auction.getActiveAuctions(req.query.wallet);
-  res.json(result);
+
+
+
+  let rafflesPromise = auction.getActiveRaffles(req.query.wallet);
+  let auctionsPromise = getActiveAuctions(req.query.wallet.toString());
+  
+
+  await Promise.all([rafflesPromise, auctionsPromise]).then(values => {
+
+    const valueError = values.find(a => a.error);
+    if (valueError) {
+      return res.json(valueError);
+    }
+
+    let raffles = values[0].raffles;
+    for (let raffle of raffles) {
+      raffle.type = "RAFFLE";
+    }
+    let auctions = values[1].auctions;
+    for (let auction of auctions) {
+      auction.type = "AUCTION";
+    }
+
+    let events = raffles;
+    events = events.concat(auctions);
+    
+    
+    res.json({
+      success: true,
+      events: events,
+      astraBalance: values[0].astraBalance
+    });
+  })
 });
 
 app.get("/auction-house/past-raffles", async (req, res) => {
@@ -151,6 +183,20 @@ app.post("/auction-house/update-raffle-winners", async (req, res) => {
   res.json(result);
 });
 
+app.post("/auction-house/create-auction", async (req, res) => {
+  let result = await createAuction(req.body);
+  res.json(result);
+});
+
+app.post("/astra-house/auction/info", async (req, res) => {
+  let result = await getAuctionInfo(req.body.auction, req.body.wallet);
+  res.json(result);
+});
+
+app.post("/astra-house/auction/bid", async (req, res) => {
+  let result = await bidOnAuction(req.body.wallet, req.body.auction, req.body.bid, req.body.currentBid, req.body.message, req.body.bh);
+  res.json(result);
+});
 
 app.get("/public-state", async (req, res) => {
   let result = await staking.doGetPublicState();

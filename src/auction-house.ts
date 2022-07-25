@@ -152,7 +152,7 @@ export async function updateRaffleWinners(body: UpdateRaffleWinnersBody) {
 	}
 }
 
-export async function getActiveAuctions(walletID) {
+export async function getActiveRaffles(walletID) {
 	if (!walletID) {
 		return {
 			success: false,
