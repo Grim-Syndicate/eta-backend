@@ -6,9 +6,13 @@ import * as staking from './staking-mechanics';
 import * as questing from './questing';
 import * as auction from './auction-house';
 import Functions from './functions/index';
-import { bidOnAuction, createAuction, getActiveAuctions, getAuctionInfo } from './functions/astra-auction-house';
+import { bidOnAuction, createAuction, getActiveAuctions, getAuctionInfo, getPastAuctions } from './functions/astra-auction-house';
+import cors from 'cors';
 
 const app = express();
+app.use(cors({
+    origin: '*'
+}));
 
 app.use(function (req, res, next) {
     // Website you wish to allow to connect
@@ -124,7 +128,6 @@ app.get("/auction-house", async (req, res) => {
   let rafflesPromise = auction.getActiveRaffles(req.query.wallet);
   let auctionsPromise = getActiveAuctions(req.query.wallet.toString());
   
-
   await Promise.all([rafflesPromise, auctionsPromise]).then(values => {
 
     const valueError = values.find(a => a.error);
@@ -153,9 +156,31 @@ app.get("/auction-house", async (req, res) => {
   })
 });
 
-app.get("/auction-house/past-raffles", async (req, res) => {
-    const result = await auction.getPastRaffles();
-    res.json(result);
+app.get("/auction-house/past-events", async (req, res) => {
+    
+  let rafflesPromise = auction.getPastRaffles();
+  let auctionsPromise = getPastAuctions();
+  
+  await Promise.all([rafflesPromise, auctionsPromise]).then(values => {
+
+    let raffles = values[0].raffles;
+    for (let raffle of raffles) {
+      raffle.type = "RAFFLE";
+    }
+    let auctions = values[1].auctions;
+    for (let auction of auctions) {
+      auction.type = "AUCTION";
+    }
+
+    let events = raffles;
+    events = events.concat(auctions);
+    
+    
+    res.json({
+      success: true,
+      events: events,
+    });
+  })
 });
   
 app.get("/auction-house/my-raffles", async (req, res) => {

@@ -71,10 +71,11 @@ export async function createAuction(body: CreateAuctionBody) {
 		}
 	}
 
-	body.form.currentBid = 0;
 
 	if (!body.id) {
 		console.log("generating new id");
+		//make sure we only reset currentBid if this is a new auction being created!
+		body.form.currentBid = 0;
 		body.id = ObjectId();
 	}
 	try {
@@ -414,5 +415,31 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 		newMinBid: newMinBid,
 		newCurrentBid: newCurrentBid,
 		currentWinningWallet: auction.currentWinningWallet,
+	}
+}
+
+export async function getPastAuctions() {
+	try {
+		const timestamp = Constants.getTimestamp();
+
+		let auctions = await Models.AstraAuction.find({
+			enabled: true,
+			$and: [{enabledTo: {$lte: timestamp}}]
+		}).sort({'enabledTo': 1});
+
+		let results = [];
+
+		for (let i in auctions) {
+			let auction = auctions[i].toJSON();
+
+			results.push(auction);
+		}
+
+		return {
+			success: true,
+			auctions: results,
+		}
+	} catch {
+		
 	}
 }
