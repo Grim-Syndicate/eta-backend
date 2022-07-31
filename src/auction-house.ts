@@ -302,11 +302,10 @@ export async function getMyRaffles(walletID) {
 	
 }
 
-export async function buyTickets(wallet, raffleID, tickets, message, blockhash) {
+export async function buyTickets(wallet: string, raffleID: string, tickets: number, message: string, blockhash) {
 	const isTicketAmountGreaterThanOne = tickets >= 1
-	const isTicketAmountWholeNumber  = Number.isInteger(tickets)
 
-	if (!wallet || !raffleID || !tickets || !message || !isTicketAmountGreaterThanOne || !isTicketAmountWholeNumber) {
+	if (!wallet || !raffleID || !tickets || !message || !isTicketAmountGreaterThanOne) {
 		return {
 			success: false,
 			error: 'Invalid Request'
@@ -315,7 +314,7 @@ export async function buyTickets(wallet, raffleID, tickets, message, blockhash) 
 
 	let walletJSON = await Functions.getWalletJSON(wallet);
 
-	if (!process.env.WHITELIST_DISABLED && !wallet.isWhitelisted) {
+	if (!process.env.WHITELIST_DISABLED && !walletJSON.isWhitelisted) {
 		console.log('Access Denied');
 		return {
 			success: false,
@@ -341,7 +340,7 @@ export async function buyTickets(wallet, raffleID, tickets, message, blockhash) 
 		}
 	}
 
-	let previousEntry = await Models.RaffleEntries.findOne({walletID: walletJSON._id, raffleID: raffleID })
+	let previousEntry: { pendingTickets: number, tickets: number } = await Models.RaffleEntries.findOne({walletID: walletJSON._id, raffleID: raffleID })
 
 	if(previousEntry && (tickets + previousEntry.tickets + previousEntry.pendingTickets) > raffle.maxTickets){
 		console.log('Went higher than available tickets not found!');
@@ -378,7 +377,7 @@ export async function buyTickets(wallet, raffleID, tickets, message, blockhash) 
 	let raffleEntries = {};
 
 	try {
-		let raffleTransaction = await Functions.AuctionHouse.createTransaction(walletJSON._id, raffle._id, parseInt(tickets), parseInt(tickets) * raffle.ticketPrice);
+		let raffleTransaction = await Functions.AuctionHouse.createTransaction(walletJSON._id, raffle._id, tickets, tickets * raffle.ticketPrice);
 		raffleEntries = await Functions.AuctionHouse.createWalletRaffleEntries(walletJSON._id, raffle._id);
 		let success = await Functions.AuctionHouse.handleTicketsBuying(raffleTransaction);
 		if (!success) throw new Error('Failed tickets buying: ' + raffleTransaction._id);

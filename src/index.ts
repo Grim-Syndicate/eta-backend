@@ -188,13 +188,8 @@ app.get("/auction-house/my-raffles", async (req, res) => {
     res.json(result);
 });
 
-app.get("/auction-house/buy-tickets", async (req, res) => {
-  let result = await auction.buyTickets(req.query.wallet, req.query.raffle, req.query.tickets, req.query.message, req.query.bh);
-  res.json(result);
-});
-
 app.post("/auction-house/buy-tickets", async (req, res) => {
-  let result = await auction.buyTickets(req.body.wallet, req.body.raffle, req.body.tickets, req.body.message, req.body.bh);
+  let result = await auction.buyTickets(req.body.wallet, req.body.raffle, Number(req.body.tickets), req.body.message, req.body.bh);
   res.json(result);
 });
 
@@ -219,7 +214,7 @@ app.post("/astra-house/auction/info", async (req, res) => {
 });
 
 app.post("/astra-house/auction/bid", async (req, res) => {
-  let result = await bidOnAuction(req.body.wallet, req.body.auction, req.body.bid, req.body.currentBid, req.body.message, req.body.bh);
+  let result = await bidOnAuction(req.body.wallet, req.body.auction, Number(req.body.bid), Number(req.body.currentBid), req.body.message, req.body.bh);
   res.json(result);
 });
 

@@ -292,7 +292,7 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 
 			let eq = [
 				"$currentBid",
-				(bid - auction.tickSize)
+				(currentBid)
 			]
 
 			//No bid on this auction yet, we gotta go off the starting bid instead
@@ -310,7 +310,8 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 			});
 
 			if (!matchedAuction) {
-				console.log("auction not found, aborting");
+				console.log("auction not found, aborting", eq);
+				console.log("currentBid", currentBid);
 				await session.abortTransaction();
 				return;
 			}
