@@ -2,7 +2,7 @@ import Models from '../models/index';
 import Constants from '../constants';
 import Functions from './index';
 import { CreateAuctionBody } from 'models/auction-house';
-import { ClientSession, Types } from 'mongoose';
+import { ClientSession, SaveOptions, Types } from 'mongoose';
 
 import mongoose from './../mongodb-client';
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -335,6 +335,15 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 						await session.abortTransaction();
 						return;
 					}
+
+					let walletTransaction = await createTransaction("OUTBID_ON_AUCTION", auction._id, -auction.currentBid , currentWinnerDbWallet._id, session);
+					if (!walletTransaction || !walletTransaction._id) {
+
+						console.log("Failed creating transaction, aborting");
+						await session.abortTransaction();
+						return;
+					}
+
 				} else {
 					console.log("currentWinnerDbWallet not found", currentWinner);
 				}
@@ -379,6 +388,14 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 				return;
 			}
 
+
+			let walletTransaction = await createTransaction("BID_ON_AUCTION", auction._id, bid, walletJSON._id, session);
+			if (!walletTransaction || !walletTransaction._id) {
+
+				console.log("Failed creating transaction, aborting");
+				await session.abortTransaction();
+				return;
+			}
 		});
 
 		if (transactionResults === undefined) {
@@ -440,6 +457,29 @@ export async function getPastAuctions() {
 			auctions: results,
 		}
 	} catch {
-		
+
 	}
+}
+
+async function createTransaction(type: "BID_ON_AUCTION" | "OUTBID_ON_AUCTION", auctionId: Types.ObjectId, amount: number, walletId: Types.ObjectId, session: ClientSession) {
+	let transaction = {
+		type: type,
+		source: auctionId,
+		amount: amount,
+		status: 'COMPLETE',
+		timestamp: Constants.getTimestamp(),
+		extraData: {
+			auctionId: auctionId,
+		}
+	};
+
+	if (walletId) {
+		transaction['destination'] = walletId;
+	}
+	let opt: SaveOptions = {
+		"session": session
+	};
+
+	let t = await Models.Transaction.create([transaction], opt);
+	return t[0];
 }

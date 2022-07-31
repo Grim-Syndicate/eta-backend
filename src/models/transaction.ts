@@ -12,6 +12,7 @@ export interface ITransaction {
   timestamp: number
   claimTimestamp: number
   hasLockedPoints: boolean
+  extraData: any
 }
 
 let transactionSchema = new Schema<ITransaction>({
@@ -47,6 +48,9 @@ let transactionSchema = new Schema<ITransaction>({
   timestamp: {
     type: Number,
     index: true
+  },
+  extraData: {
+    type: Object, 
   },
   claimTimestamp: Number,
   hasLockedPoints: Boolean
