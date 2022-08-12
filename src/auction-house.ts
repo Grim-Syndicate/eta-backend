@@ -84,7 +84,8 @@ export async function createRaffle(body: CreateRaffleBody) {
 	}
 
 	return {
-		success: true
+		success: true,
+		id: body.id
 	}
 }
 

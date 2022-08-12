@@ -6,7 +6,7 @@ import * as staking from './staking-mechanics';
 import * as questing from './questing';
 import * as auction from './auction-house';
 import Functions from './functions/index';
-import { bidOnAuction, createAuction, getActiveAuctions, getAuctionInfo, getPastAuctions } from './functions/astra-auction-house';
+import { bidOnAuction, createAuction, deleteAuction, getActiveAuctions, getAuctionInfo, getPastAuctions } from './functions/astra-auction-house';
 import cors from 'cors';
 
 const app = express();
@@ -205,6 +205,11 @@ app.post("/auction-house/update-raffle-winners", async (req, res) => {
 
 app.post("/auction-house/create-auction", async (req, res) => {
   let result = await createAuction(req.body);
+  res.json(result);
+});
+
+app.post("/auction-house/delete-auction", async (req, res) => {
+  let result = await deleteAuction(req.body);
   res.json(result);
 });
 

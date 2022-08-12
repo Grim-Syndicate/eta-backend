@@ -1,7 +1,7 @@
 import Models from '../models/index';
 import Constants from '../constants';
 import Functions from './index';
-import { CreateAuctionBody } from 'models/auction-house';
+import { CreateAuctionBody, DeleteAuctionBody } from 'models/auction-house';
 import { ClientSession, SaveOptions, Types } from 'mongoose';
 
 import mongoose from './../mongodb-client';
@@ -90,7 +90,75 @@ export async function createAuction(body: CreateAuctionBody) {
 	}
 
 	return {
-		success: true
+		success: true,
+		id: body.id
+	}
+}
+
+
+export async function deleteAuction(body: DeleteAuctionBody) {
+	if (!body.wallet || !body.message) {
+		return {
+			success: false,
+			error: 'Invalid wallet or message'
+		}
+	}
+
+	
+	if (!body.auctionId) {
+		return {
+			success: false,
+			error: 'Invalid Request'
+		}
+	}
+
+	const blockhash = body.blockhash;
+	const message = body.message;
+
+	let messageResult = false;
+	let action = 'delete-event';
+	let data = {
+		auctionId: body.auctionId,
+		wallet: body.wallet,
+	};
+
+	let walletJSON = await Functions.getWalletJSON(body.wallet);
+	if (!walletJSON.roles.includes("RAFFLE_CREATOR")) {
+		return {
+			success: false,
+			error: "You don't have access to this feature"
+		};
+	}
+
+
+	if (!blockhash) {
+		messageResult = await Functions.verifyMessage(walletJSON, action, data, message);
+	} else {
+		messageResult = await Functions.verifyTransaction(walletJSON, action, data, message, blockhash);
+	}
+
+	if (!messageResult) {
+		console.log('Verification Failed');
+		return {
+			success: false,
+			error: 'Verification Failed'
+		}
+	}
+
+	try {
+		await Models.AstraAuction.findOneAndDelete({ _id: body.auctionId });
+	} catch (e) {
+		console.log(e);
+
+		return {
+			success: false,
+			error: 'Deleting Auction Failed'
+		};
+	}
+
+	return {
+		success: true,
+		id: body.id
 	}
 }
 
@@ -188,6 +256,7 @@ export async function getAuctionInfo(auctionId: string, wallet: string) {
 		success: true,
 		newMinBid: newMinBid,
 		newCurrentBid: newCurrentBid,
+		enabledTo: auction.enabledTo,
 		currentWinningWallet: auction.currentWinningWallet,
 		pointsBalance: walletJSON.pointsBalance
 	}
@@ -350,6 +419,8 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 				}
 			}
 
+
+			const unixSeconds = Math.floor(date.getTime());
 			let updateAuctionBidResult = await Models.AstraAuction.updateOne({
 				_id: auctionId,
 				$expr: {
@@ -358,7 +429,8 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 			}, {
 				$set: {
 					currentBid: bid,
-					currentWinningWallet: walletJSON.wallet
+					currentWinningWallet: walletJSON.wallet,
+					enabledTo: (matchedAuction.enabledTo - unixSeconds < (60 * 5 * 1000)) ?  matchedAuction.enabledTo + (1000 * 60 * 5) : matchedAuction.enabledTo //add 5 minutes to auction expiry time if there's less than 5 minutes left
 				},
 				$push: { bidHistory: { wallet: walletJSON.wallet, bid: bid, timestamp: unix } }
 			}, { session });
@@ -388,7 +460,7 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 				await session.abortTransaction();
 				return;
 			}
-
+			
 
 			let walletTransaction = await createTransaction("BID_ON_AUCTION", auction._id, bid, walletJSON._id, session);
 			if (!walletTransaction || !walletTransaction._id) {
@@ -423,8 +495,9 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 
 	//Everything was okay!
 
-	//grab it again from the database just to make sure we wont have any issues w/ out of date bids etc
+	//grab these again from the database just to make sure we wont have any issues w/ out of date bids etc
 	auction = await Models.AstraAuction.findById(auctionId);
+	walletJSON = await Functions.getWalletJSON(wallet);
 
 	const newMinBid = auction.currentBid ? auction.currentBid + (auction.tickSize || 0) : auction.startingBid;
 	const newCurrentBid = auction.currentBid ? auction.currentBid : auction.startingBid;
@@ -432,7 +505,9 @@ export async function bidOnAuction(wallet: string, auctionId: string, bid: numbe
 		success: true,
 		newMinBid: newMinBid,
 		newCurrentBid: newCurrentBid,
+		enabledTo: auction.enabledTo,
 		currentWinningWallet: auction.currentWinningWallet,
+		pointsBalance: walletJSON.pointsBalance
 	}
 }
 

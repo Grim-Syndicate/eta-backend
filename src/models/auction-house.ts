@@ -45,3 +45,11 @@ export interface CreateAuctionBodyForm {
     enabledTo: number;
 }
 
+
+export interface DeleteAuctionBody {
+    wallet: string;
+    message: string;
+    auctionId: string;
+    blockhash: number;
+    id: ObjectId;
+}
