@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from 'path'
 import * as web3 from "@solana/web3.js";
 import nameService from '@bonfida/spl-name-service';
 import Models from './models/index';
@@ -420,12 +422,19 @@ async function getPublicState() {
 	const stakedGrims = await getStakedGrimsCount();
 	const solPrice = await getSolPrice();
 	const floorPrice = await getFloorPrice();
+	let build = ''
+
+	try {
+		build = fs.readFileSync(path.resolve(__dirname, '../.build'), 'utf8');
+	} catch (e) {
+	}
 
 	return {
 		success: true,
 		allStakedTokens: stakedGrims?.config?.GRIMS,
 		solPrice: solPrice.config,
-		floorPrice: floorPrice.config
+		floorPrice: floorPrice.config,
+		build: build
 	}
 }
 
