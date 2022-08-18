@@ -6,7 +6,7 @@ on:
 
 jobs:
   deployment:
-    runs-on: self-hosted
+    runs-on: dev
     steps:
       - name: Checkout branch
         uses: actions/checkout@v3

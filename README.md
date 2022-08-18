@@ -5,6 +5,7 @@ create ssh key if none exist: `ssh-keygen -t ed25519 -C "name@email.com"` and pu
 ### TO USE CI WITH GITHUB ACTIONS START WITH THIS FIRST
 
 `su nodejs`
+Go to `~`
 Create a self hosted runner on Github
 https://github.com/Grim-Syndicate/eta-backend/settings/actions/runners/new?arch=x64&os=linux
 
@@ -14,7 +15,9 @@ Instead of running it, exit su to root and install the service
 `./svc.sh install`
 `./svc.sh start`
 
-Clone repo
+Go back to `su nodejs`
+
+Clone repo to `~`
 run `npm install`
 fill .env values properly
 run `pm2 start npm --name "ETA" -- run "prod" --no-automation`
@@ -38,6 +41,8 @@ exit from nodejs user
 
 Find the existing server_name line and replace with domain name
 Find the existing location line and replace with correct port
+
+Make sure the DNS records are already pointing to the right IP address
 
 Reload nginx so certbot finds the name: `sudo systemctl reload nginx`
 
