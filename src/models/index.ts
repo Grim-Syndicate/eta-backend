@@ -11,6 +11,7 @@ import Stamina from './stamina';
 import RaffleCampaign from './raffle-campaign';
 import RaffleEntries from './raffle-entries';
 import RaffleTransaction from './raffle-transaction';
+import AstraAuction from './auction';
 
 export default {
   Wallet: WalletModels.Wallet,
@@ -26,5 +27,6 @@ export default {
   RaffleCampaign: RaffleCampaign,
   RaffleEntries: RaffleEntries,
   RaffleTransaction: RaffleTransaction,
-  JSONConfigs: JSONConfigs
+  JSONConfigs: JSONConfigs,
+  AstraAuction: AstraAuction
 }
