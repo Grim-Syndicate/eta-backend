@@ -39,6 +39,7 @@ const pendingTransactionSchema = new Schema({
 let walletJSONSchema = {
   wallet: {
     type: String,
+    unique: true,
     index: true
   },
   nonce: {
