@@ -16,6 +16,7 @@ export interface IWallet {
   lastChecked: number
   firstLogin: number
   walletTokens?: any[]
+  roles: Array<string>
 
   getToken: (token:string) => Promise<HydratedDocument<IToken>>
 }
@@ -38,6 +39,7 @@ const pendingTransactionSchema = new Schema({
 let walletJSONSchema = {
   wallet: {
     type: String,
+    unique: true,
     index: true
   },
   nonce: {
@@ -69,6 +71,10 @@ let walletJSONSchema = {
   isWhitelisted: {
     type: Boolean,
     default: false
+  },
+  roles: {
+    type: [String],
+    default: []
   },
   pendingTransactions: [pendingTransactionSchema]
 };

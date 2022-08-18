@@ -9,8 +9,7 @@ import Constants from '../constants';
 
 import transactionFunctions from './transactions';
 import * as questingFunctions from './questing';
-import * as auctionHouseFunctions from './auction-house';
-
+import * as auctionHouseFunctions from './astra-raffle-house';
 const grimsMetaPath = path.resolve(__dirname, '../../grims_raw_metadata');
 const daemonsMetaPath = path.resolve(__dirname, '../../daemons_raw_metadata');
 const messagePrefix = "Please sign this message for proof of address ownership: ";
@@ -19,7 +18,9 @@ async function getWalletJSON(wallet:string) {
 	let walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
 
 	if (!walletContentJSON) {
-		walletContentJSON = await Models.WalletContent.create({wallet: wallet});
+		//Use this method to create a new wallet in the database, it avoids dupes.s
+		await Models.WalletContent.updateOne({wallet: wallet}, {wallet: wallet}, {upsert: true});
+		walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
 	}
 
 	return walletContentJSON;
@@ -143,6 +144,14 @@ async function getUser(walletJSON, isNew = false) {
 	return {
 		success: true,
 		user: walletJSON.nonce
+	}
+}
+
+async function getUserRoles(wallet: string) {
+	const walletJSON = await getWalletJSON(wallet);
+	return { 
+		success: true,
+		roles: walletJSON.roles
 	}
 }
 
@@ -276,6 +285,7 @@ export default {
 	getWalletJSON: getWalletJSON,
 	getSimpleWalletJSON: getSimpleWalletJSON,
 	getUser: getUser,
+	getUserRoles: getUserRoles,
 	getTokensInWallet: getTokensInWallet,
 	getGrimsFromTokens: getGrimsFromTokens,
 	getGrimMetadata: getGrimMetadata,

@@ -6,8 +6,13 @@ import * as staking from './staking-mechanics';
 import * as questing from './questing';
 import * as auction from './auction-house';
 import Functions from './functions/index';
+import { bidOnAuction, createAuction, deleteAuction, getActiveAuctions, getAuctionInfo, getPastAuctions } from './functions/astra-auction-house';
+import cors from 'cors';
 
 const app = express();
+app.use(cors({
+    origin: '*'
+}));
 
 app.use(function (req, res, next) {
     // Website you wish to allow to connect
@@ -48,6 +53,11 @@ app.get("/wl", async (req, res) => {
 
 app.get("/user", async (req, res) => {
   let result = await Functions.getUser(req.query.wallet);
+  res.json(result);
+});
+
+app.get("/userRoles", async (req, res) => {
+  let result = await Functions.getUserRoles(req.query?.wallet?.toString());
   res.json(result);
 });
 
@@ -112,13 +122,65 @@ app.get("/quests/claim", async (req, res) => {
 });
 
 app.get("/auction-house", async (req, res) => {
-  let result = await auction.getActiveAuctions(req.query.wallet);
-  res.json(result);
+
+
+
+  let rafflesPromise = auction.getActiveRaffles(req.query.wallet);
+  let auctionsPromise = getActiveAuctions(req.query.wallet.toString());
+  
+  await Promise.all([rafflesPromise, auctionsPromise]).then(values => {
+
+    const valueError = values.find(a => a.error);
+    if (valueError) {
+      return res.json(valueError);
+    }
+
+    let raffles = values[0].raffles;
+    for (let raffle of raffles) {
+      raffle.type = "RAFFLE";
+    }
+    let auctions = values[1].auctions;
+    for (let auction of auctions) {
+      auction.type = "AUCTION";
+    }
+
+    let events = raffles;
+    events = events.concat(auctions);
+    
+    
+    res.json({
+      success: true,
+      events: events,
+      astraBalance: values[0].astraBalance
+    });
+  })
 });
 
-app.get("/auction-house/past-raffles", async (req, res) => {
-    const result = await auction.getPastRaffles();
-    res.json(result);
+app.get("/auction-house/past-events", async (req, res) => {
+    
+  let rafflesPromise = auction.getPastRaffles();
+  let auctionsPromise = getPastAuctions();
+  
+  await Promise.all([rafflesPromise, auctionsPromise]).then(values => {
+
+    let raffles = values[0].raffles;
+    for (let raffle of raffles) {
+      raffle.type = "RAFFLE";
+    }
+    let auctions = values[1].auctions;
+    for (let auction of auctions) {
+      auction.type = "AUCTION";
+    }
+
+    let events = raffles;
+    events = events.concat(auctions);
+    
+    
+    res.json({
+      success: true,
+      events: events,
+    });
+  })
 });
   
 app.get("/auction-house/my-raffles", async (req, res) => {
@@ -126,13 +188,38 @@ app.get("/auction-house/my-raffles", async (req, res) => {
     res.json(result);
 });
 
-app.get("/auction-house/buy-tickets", async (req, res) => {
-  let result = await auction.buyTickets(req.query.wallet, req.query.raffle, req.query.tickets, req.query.message, req.query.bh);
+app.post("/auction-house/buy-tickets", async (req, res) => {
+  let result = await auction.buyTickets(req.body.wallet, req.body.raffle, Number(req.body.tickets), req.body.message, req.body.bh);
   res.json(result);
 });
 
-app.post("/auction-house/buy-tickets", async (req, res) => {
-  let result = await auction.buyTickets(req.body.wallet, req.body.raffle, req.body.tickets, req.body.message, req.body.bh);
+app.post("/auction-house/create-raffle", async (req, res) => {
+  let result = await auction.createRaffle(req.body);
+  res.json(result);
+});
+
+app.post("/auction-house/update-raffle-winners", async (req, res) => {
+  let result = await auction.updateRaffleWinners(req.body);
+  res.json(result);
+});
+
+app.post("/auction-house/create-auction", async (req, res) => {
+  let result = await createAuction(req.body);
+  res.json(result);
+});
+
+app.post("/auction-house/delete-auction", async (req, res) => {
+  let result = await deleteAuction(req.body);
+  res.json(result);
+});
+
+app.post("/astra-house/auction/info", async (req, res) => {
+  let result = await getAuctionInfo(req.body.auction, req.body.wallet);
+  res.json(result);
+});
+
+app.post("/astra-house/auction/bid", async (req, res) => {
+  let result = await bidOnAuction(req.body.wallet, req.body.auction, Number(req.body.bid), Number(req.body.currentBid), req.body.message, req.body.bh);
   res.json(result);
 });
 
