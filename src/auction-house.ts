@@ -3,6 +3,7 @@ import Constants from './constants';
 import Functions from './functions/index';
 import { CreateRaffleBody, UpdateRaffleWinnersBody } from 'models/auction-house';
 import { getRaffleWinners } from './functions/astra-raffle-house';
+import { IRaffleCampaign } from 'models/raffle-campaign';
 const ObjectId = require('mongoose').Types.ObjectId;
 
 export async function createRaffle(body: CreateRaffleBody) {
@@ -268,11 +269,11 @@ export async function getMyRaffles(walletID) {
 		const raffleIDs = raffleEntries.map(entry => entry.raffleID)
 		const raffles = await Models.RaffleCampaign.find({ $in: { _id: raffleIDs }});
 		
-		const raffleMap = {}
+		const raffleMap: { [key: string]: IRaffleCampaign } = {}
 
 		for (let i in raffles) {
 			const raffle = raffles[i].toJSON();
-			raffleMap[raffle._id] = raffle
+			raffleMap[raffle._id.toString()] = raffle
 		}
 
 		const results = [];
@@ -280,7 +281,7 @@ export async function getMyRaffles(walletID) {
 		for (let i in raffleEntries) {
 			const entry = raffleEntries[i].toJSON();
 			entry.entryDate = dateFromObjectId(entry._id);
-			const raffle = raffleMap[entry.raffleID]
+			const raffle = raffleMap[entry.raffleID.toString()]
 			entry.totalCost = raffle.ticketPrice * entry.tickets;
 			entry.raffle = raffle
 			const timestamp = Constants.getTimestamp();

@@ -5,7 +5,6 @@ import nameService from '@bonfida/spl-name-service';
 import Models from './models/index';
 import Constants from './constants';
 import Functions from './functions/index';
-import mongoose from './mongodb-client';
 
 const database = "grims_universe";
 
@@ -1137,18 +1136,4 @@ export async function doInternal() {
 	// 		isStaked: stakedStatus
 	// 	});
 	// }
-}
-
-export async function dbDisconnect() {
-	try {
-		if (mongoose) {
-			await mongoose.then(db => {
-				console.log('DB Shutdown initiated');
-				db.connections[0].close();
-				console.log('DB Shutdown done');
-			});
-		}
-	} catch (e) {
-		console.log('failed to disconnect', e);
-	}
 }

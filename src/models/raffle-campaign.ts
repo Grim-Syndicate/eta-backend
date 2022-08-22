@@ -1,8 +1,27 @@
-import mongoose from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
 
-let Schema = mongoose.Schema;
+export interface IRaffleCampaign {
+  _id: Types.ObjectId
+  title: string
+  shortDescription: string
+  author: string
+  authorLink: string
+  image: string
+  enabled: boolean
+  enabledFrom: number
+  enabledTo: number
+  ticketPrice: number
+  maxTickets: number
+  limit: number
+  uniqueWinners: boolean
+  winnerCount: number
+  winners: string[]
+  walletTickets?: number
+  totalTickets?: number
+  ended?:boolean
+}
 
-let raffleCampaignSchema = new Schema({
+let raffleCampaignSchema = new Schema<IRaffleCampaign>({
   title: String,
   shortDescription: String,
   author: String,
@@ -23,9 +42,12 @@ let raffleCampaignSchema = new Schema({
   },
   ticketPrice: Number,
   maxTickets: Number,
-  limit: Number
+  limit: Number,
+  uniqueWinners: Boolean,
+  winnerCount: Number,
+  winners:[String]
 }, {versionKey: false});
 
-const RaffleCampaign = mongoose.model('RaffleCampaign', raffleCampaignSchema);
+const RaffleCampaign = model<IRaffleCampaign>('RaffleCampaign', raffleCampaignSchema);
 
 export default RaffleCampaign;

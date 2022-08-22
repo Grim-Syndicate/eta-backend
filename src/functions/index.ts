@@ -15,25 +15,33 @@ const daemonsMetaPath = path.resolve(__dirname, '../../daemons_raw_metadata');
 const messagePrefix = "Please sign this message for proof of address ownership: ";
 
 async function getWalletJSON(wallet:string) {
-	let walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
+	try{
+		let walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
 
-	if (!walletContentJSON) {
-		//Use this method to create a new wallet in the database, it avoids dupes.s
-		await Models.WalletContent.updateOne({wallet: wallet}, {wallet: wallet}, {upsert: true});
-		walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
+		if (!walletContentJSON) {
+			//Use this method to create a new wallet in the database, it avoids dupes.s
+			await Models.WalletContent.updateOne({wallet: wallet}, {wallet: wallet}, {upsert: true});
+			walletContentJSON = await Models.WalletContent.findOne({wallet: wallet});
+		}
+
+		return walletContentJSON;
+	}catch(e){
+		throw e
 	}
-
-	return walletContentJSON;
 }
 
 async function getSimpleWalletJSON(wallet) {
-	let walletContentJSON = await Models.Wallet.findOne({wallet: wallet});
+	try{
+		let walletContentJSON = await Models.Wallet.findOne({wallet: wallet});
 
-	if (!walletContentJSON) {
-		walletContentJSON = await Models.Wallet.create({wallet: wallet});
+		if (!walletContentJSON) {
+			walletContentJSON = await Models.Wallet.create({wallet: wallet});
+		}
+
+		return walletContentJSON;
+	}catch(e){
+		throw e
 	}
-
-	return walletContentJSON;
 }
 
 async function verifyTransaction(walletJSON, action, data, signature, blockhash) {

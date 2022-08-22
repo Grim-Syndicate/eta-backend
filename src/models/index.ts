@@ -12,6 +12,8 @@ import RaffleCampaign from './raffle-campaign';
 import RaffleEntries from './raffle-entries';
 import RaffleTransaction from './raffle-transaction';
 import AstraAuction from './auction';
+import Proposal from './proposal';
+import ProposalVote from './proposal-vote';
 
 export default {
   Wallet: WalletModels.Wallet,
@@ -28,5 +30,7 @@ export default {
   RaffleEntries: RaffleEntries,
   RaffleTransaction: RaffleTransaction,
   JSONConfigs: JSONConfigs,
-  AstraAuction: AstraAuction
+  AstraAuction: AstraAuction,
+  Proposal: Proposal,
+  ProposalVote: ProposalVote,
 }

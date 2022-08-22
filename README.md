@@ -17,7 +17,7 @@ Instead of running it, exit su to root and install the service
 
 Go back to `su nodejs`
 
-Clone repo to `~`
+Clone repo to wherever the runner's work directory got created. If defaults, it should be here: `~/actions-runner/_work/eta-backend` (it will clone into another `eta-backend` dir)
 run `npm install`
 fill .env values properly
 run `pm2 start npm --name "ETA" -- run "prod" --no-automation`

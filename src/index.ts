@@ -5,9 +5,11 @@ import bodyParser from 'body-parser';
 import * as staking from './staking-mechanics';
 import * as questing from './questing';
 import * as auction from './auction-house';
+import * as ballotBox from './ballot-box';
 import Functions from './functions/index';
 import { bidOnAuction, createAuction, deleteAuction, getActiveAuctions, getAuctionInfo, getPastAuctions } from './functions/astra-auction-house';
 import cors from 'cors';
+import mongoose, { dbDisconnect } from './mongodb-client';
 
 const app = express();
 app.use(cors({
@@ -40,10 +42,7 @@ app.use(bodyParser.urlencoded({
 })); 
 
 app.get('/', async (req, res) => {
-  // const clientPromise = require('./mongodb-client');
-  // const client = await clientPromise;
   res.json({ message: "Access denied!" });
-  // res.status(200).json({ dbName: client.db().databaseName });
 });
 
 app.get("/wl", async (req, res) => {
@@ -122,9 +121,6 @@ app.get("/quests/claim", async (req, res) => {
 });
 
 app.get("/auction-house", async (req, res) => {
-
-
-
   let rafflesPromise = auction.getActiveRaffles(req.query.wallet);
   let auctionsPromise = getActiveAuctions(req.query.wallet.toString());
   
@@ -223,6 +219,26 @@ app.post("/astra-house/auction/bid", async (req, res) => {
   res.json(result);
 });
 
+app.get("/ballot-box", async (req, res) => {
+  let result = await ballotBox.getActiveProposals(req.query.wallet);
+  res.json(result);
+});
+
+app.get("/ballot-box/wallet-votes", async (req, res) => {
+  let result = await ballotBox.getWalletVotes(req.query.wallet, req.query.proposalID);
+  res.json(result);
+});
+
+app.post("/ballot-box/create-proposal", async (req, res) => {
+  let result = await ballotBox.createProposal(req.body);
+  res.json(result);
+});
+
+app.post("/ballot-box/submit-vote", async (req, res) => {
+  let result = await ballotBox.submitVote(req.body.wallet, req.body.proposalID, req.body.votes, req.body.voteWeight, req.body.message, req.body.bh);
+  res.json(result);
+});
+
 app.get("/public-state", async (req, res) => {
   let result = await staking.doGetPublicState();
   res.json(result);
@@ -293,20 +309,25 @@ app.use(express.static('public'));
 
 // Start the server
 const PORT = process.env.PORT || 5050;
-const server = app.listen(PORT, () => {
-  console.log(`App listening on port ${PORT}`);
-  console.log('Press Ctrl+C to quit.');
-});
-// [END gae_node_request_example]
 
-process.on('SIGTERM', shutDown);
-process.on('SIGINT', shutDown);
-
-function shutDown() {
+const main = async () => {
+  await mongoose
+  const server = app.listen(PORT, () => {
+    console.log(`App listening on port ${PORT}`);
+    console.log('Press Ctrl+C to quit.');
+  });
+  
+  process.on('SIGTERM', shutDown);
+  process.on('SIGINT', shutDown);
+  
+  function shutDown() {
     server.close(async () => {
         console.log('\nShutting down DB connection...');
-        await staking.dbDisconnect();
+        await dbDisconnect();
         console.log('Done');
         process.exit(0);
     });
+  }
 }
+
+main()

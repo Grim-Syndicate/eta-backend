@@ -20,4 +20,18 @@ if (!global._mongoClientPromise) {
 
 clientPromise = global._mongoClientPromise;
 
+export async function dbDisconnect() {
+	try {
+		if (clientPromise) {
+			await clientPromise.then(db => {
+				console.log('DB Shutdown initiated');
+				db.connections[0].close();
+				console.log('DB Shutdown done');
+			});
+		}
+	} catch (e) {
+		console.log('failed to disconnect', e);
+	}
+}
+
 export default clientPromise;

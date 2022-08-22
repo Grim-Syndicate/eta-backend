@@ -1,10 +1,26 @@
-import mongoose from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
+import { IRaffleCampaign } from './raffle-campaign';
 
-let Schema = mongoose.Schema;
+export interface IRaffleEntry {
+  _id: Types.ObjectId
+  walletID: Types.ObjectId
+  raffleID: Types.ObjectId
+  tickets: number
+  pendingTickets: number
+  pendingTransactions: IPendingTicket[]
+  entryDate?:number
+  totalCost?: number
+  raffle?:IRaffleCampaign
+}
 
-const pendingTicketsSchema = new mongoose.Schema({
+export interface IPendingTicket {
+  transaction: Types.ObjectId
+  tickets: string
+}
+
+const pendingTicketsSchema = new Schema<IPendingTicket>({
     transaction: {
-      type: mongoose.Schema.Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'RaffleTransaction'
     },
     tickets: String
@@ -13,14 +29,14 @@ const pendingTicketsSchema = new mongoose.Schema({
   versionKey: false
 });
 
-let raffleEntriesSchema = new Schema({
+let raffleEntriesSchema = new Schema<IRaffleEntry>({
   walletID: {
-    type: mongoose.Schema.Types.ObjectId, 
+    type: Schema.Types.ObjectId, 
     ref: 'WalletContent',
     index: true
   },
   raffleID: {
-    type: mongoose.Schema.Types.ObjectId, 
+    type: Schema.Types.ObjectId, 
     ref: 'RaffleCampaign',
     index: true
   },
@@ -35,6 +51,6 @@ let raffleEntriesSchema = new Schema({
   pendingTransactions: [pendingTicketsSchema]
 }, {versionKey: false});
 
-const RaffleEntries = mongoose.model('RaffleEntries', raffleEntriesSchema);
+const RaffleEntries = model<IRaffleEntry>('RaffleEntries', raffleEntriesSchema);
 
 export default RaffleEntries;
