@@ -185,12 +185,15 @@ async function getTokensInWallet(wallet) {
 			} else if (info.tokenAmount.uiAmount == 1 && ('delegate' in info)) {
 				list[mint] = Constants.IN_WALLET_DELEGATED;
 			} else if (!(mint in list)) {
-				list[mint] = Constants.NOT_IN_WALLET;
+				//Don't see any reason to include grims that are not in the wallet.
+				//Comment for now and see if anyone complaints
+				//list[mint] = Constants.NOT_IN_WALLET;
 			}
 			// else - state unchanged
 		}
 	} catch (err) {
 		console.log(err);
+		throw err
 	}
 
 	return list;

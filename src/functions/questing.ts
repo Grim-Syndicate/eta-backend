@@ -1,4 +1,4 @@
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import Models from '../models/index';
 import Constants from '../constants';
 import Transaction from './transactions';
@@ -546,7 +546,7 @@ export async function isQuestExecutionFailed(status, questExecution) {
 	return failed;
 }
 
-export async function generateStamina(tokenID, cooldownPeriod, cooldownRate, units) {
+export async function generateStamina(tokenID:Types.ObjectId, cooldownPeriod, cooldownRate, units) {
 	let timestamp = Constants.getTimestamp();
 	let stamina = await Models.Stamina.findById(tokenID);
 
@@ -563,7 +563,7 @@ export async function generateStamina(tokenID, cooldownPeriod, cooldownRate, uni
 
 			stamina = await Models.Stamina.findOneAndUpdate(
 				{
-					id: tokenID,
+					_id: tokenID,
 					timestamp: stamina.timestamp
 				}, {
 				$push: { pending: { id: id, timestamp: timestamp } }
@@ -580,7 +580,7 @@ export async function generateStamina(tokenID, cooldownPeriod, cooldownRate, uni
 			if (newStamina > 0) {
 				stamina = await Models.Stamina.findOneAndUpdate(
 					{
-						id: tokenID,
+						_id: tokenID,
 						timestamp: stamina.timestamp,
 						pending: { $in: { id: id, timestamp: timestamp } },
 					}, {

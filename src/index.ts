@@ -305,6 +305,16 @@ app.get("/remove-penalty", async (req, res) => {
   res.json(result);
 });
 
+app.get("/remove-penalties", async (req, res) => {
+  let result = await staking.doRemovePenalties();
+  res.json(result);
+});
+
+app.get("/fill-stamina", async (req, res) => {
+  let result = await staking.doFillStamina(req.query.wallet);
+  res.json(result);
+});
+
 app.use(express.static('public'));
 
 // Start the server

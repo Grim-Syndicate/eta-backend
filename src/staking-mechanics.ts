@@ -1017,6 +1017,28 @@ export async function doRemovePenalty(wallet) {
 	}
 }
 
+export async function doRemovePenalties() {
+	let penalties = await Models.StakeInfo.find({penaltyTimestamp: {$gt: 0}})
+
+	console.log(`updating ${penalties.length} penalties`)
+	let i = 0
+	for (let penalty of penalties) {
+		await Models.StakeInfo.findOneAndUpdate({_id: penalty._id}, {penaltyTimestamp: false});
+		i++
+		console.log(`updated ${i}/${penalties.length} penalties`)
+	}
+	return penalties
+}
+
+export async function doFillStamina(wallet) {
+	let walletContentJSON = await Functions.getWalletJSON(wallet);
+
+	for (let i in walletContentJSON.walletTokens) {
+		let token = walletContentJSON.walletTokens[i];
+		await Models.Stamina.findOneAndUpdate({_id: token._id}, {stamina: 50});
+	}
+}
+
 export async function doInternal() {
 	// await Models.Stamina.collection.updateMany({stamina: {$gt: 50}},{$set: {stamina: 50}}); // fix stamina bug > 50
 
