@@ -32,7 +32,8 @@ async function stakeToken(walletJSON, token, timestamp) {
 		{
 			tokenID: tokenJSON._id,
 			unstakedTimestamp: {$exists: false},
-			penaltyTimestamp: {$exists: false}
+			penaltyTimestamp: {$exists: false},
+			$or: [{penaltyTimestamp: {$exists: false}}, {penaltyTimestamp: {$not: {$gt: 0}}}]
 		},
 		{
 			$set:
@@ -86,7 +87,8 @@ async function unstakeToken(walletJSON, token, timestamp) {
 				{
 					tokenID: tokenJSON._id,
 					unstakedTimestamp: {$exists: false},
-					penaltyTimestamp: {$exists: false}
+					penaltyTimestamp: {$exists: false},
+					$or: [{penaltyTimestamp: {$exists: false}}, {penaltyTimestamp: {$not: {$gt: 0}}}]
 				},
 				{
 					$set:
