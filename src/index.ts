@@ -46,7 +46,7 @@ app.get('/', async (req, res) => {
 });
 
 app.get('/build', async (req, res) => {
-  res.json({ build: "1.0.0" });
+  res.json({ build: "1.0.1" });
 });
 
 app.get("/wl", async (req, res) => {
