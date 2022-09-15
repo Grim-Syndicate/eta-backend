@@ -45,6 +45,10 @@ app.get('/', async (req, res) => {
   res.json({ message: "Access denied!" });
 });
 
+app.get('/build', async (req, res) => {
+  res.json({ build: "1.0.0" });
+});
+
 app.get("/wl", async (req, res) => {
   let result = await staking.addWhitelist(req.query.wallet, req.query.secret);
   res.json(result);
