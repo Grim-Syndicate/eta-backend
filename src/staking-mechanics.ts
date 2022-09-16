@@ -173,7 +173,7 @@ async function getClaimablePoints(pointsPerTimeperiod, token) {
 
 	for (let i in token.stakedInfo) {
 		let stakedInfo = token.stakedInfo[i];
-		if (!stakedInfo || stakedInfo.penaltyTimestamp) {
+		if (!stakedInfo || stakedInfo.penaltyTimestamp || stakedInfo.penaltyTimestamp == 0) {
 			continue;
 		}
 
