@@ -1,4 +1,4 @@
-import { Metaplex, Nft } from "@metaplex-foundation/js";
+import { isNftWithToken, Metaplex, Nft } from "@metaplex-foundation/js";
 import { Connection, PublicKey } from "@solana/web3.js";
 import Models from './models/index';
 import Constants from './constants';
@@ -118,7 +118,6 @@ export async function getActiveProposals(walletID) {
 			enabled: true,
 			$and:[
 				{$or: [{enabledFrom: {$exists: false}}, {enabledFrom: {$lte: timestamp}}]},
-				{$or: [{enabledTo: {$exists: false}}, {enabledTo: {$gte: timestamp}}]}
 			]
 		}).sort({'title': 1});
 
@@ -212,6 +211,59 @@ export async function getWalletVotes(walletID, proposalID) {
 			success: true,
 			votes: results,
 			votedOn: votedOn,
+		}
+	} catch (e){
+		console.log(e)
+		return {
+			success: false,
+			error: 'Error getting wallet votes'
+		};
+	}
+}
+
+export async function getResults(proposalID) {
+	if (!proposalID) {
+		return {
+			success: false,
+			error: 'Invalid Request'
+		}
+	}
+
+	try {
+		let resultsRaw = await Models.ProposalVote.aggregate(
+			[{ 
+				$match: { 
+					proposalID: ObjectId(proposalID),
+					proposalOptionID: { $ne:null }
+				}
+			},
+			// Count all occurrences
+			{ 
+				$group: {
+					  _id: {
+							proposalOptionID: "$proposalOptionID",
+							inSupport: "$inSupport"
+					  },
+					  count: { $sum: 1 }
+				}
+			}])
+		
+		let results:{[key:string]:any} = {};
+
+		for (let result of resultsRaw) {
+			if(!results[result._id.proposalOptionID]){
+				results[result._id.proposalOptionID] = {}
+			}
+			if(result._id.inSupport === true){
+				results[result._id.proposalOptionID]['inSupport'] = result.count
+			} else {
+				results[result._id.proposalOptionID]['against'] = result.count
+			}
+		} 
+
+		return {
+			success: true,
+			results: results,
 		}
 	} catch (e){
 		console.log(e)

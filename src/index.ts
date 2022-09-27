@@ -233,6 +233,11 @@ app.get("/ballot-box/wallet-votes", async (req, res) => {
   res.json(result);
 });
 
+app.get("/ballot-box/results", async (req, res) => {
+  let result = await ballotBox.getResults(req.query.proposalID);
+  res.json(result);
+});
+
 app.post("/ballot-box/create-proposal", async (req, res) => {
   let result = await ballotBox.createProposal(req.body);
   res.json(result);
