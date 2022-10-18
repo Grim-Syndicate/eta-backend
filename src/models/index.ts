@@ -14,6 +14,7 @@ import RaffleTransaction from './raffle-transaction';
 import AstraAuction from './auction';
 import Proposal from './proposal';
 import ProposalVote from './proposal-vote';
+import ItemDefinition from './item';
 
 export default {
   Wallet: WalletModels.Wallet,
@@ -33,4 +34,5 @@ export default {
   AstraAuction: AstraAuction,
   Proposal: Proposal,
   ProposalVote: ProposalVote,
+  ItemDefinition: ItemDefinition
 }

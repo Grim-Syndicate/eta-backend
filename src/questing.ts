@@ -3,26 +3,107 @@ import Models from './models/index';
 import Constants from './constants';
 import Functions from './functions/index';
 import { IQuestExecution } from './models/quest-execution';
+import { CreateAuctionBody } from 'models/auction-house';
+import { UpdateQuestBody } from 'models/quests';
 
-function isValidObjectId(id){
-    if(Types.ObjectId.isValid(id)){
-        if((String)(new Types.ObjectId(id)) === id)
-            return true;
-        return false;
-    }
-    return false;
+import mongoose from './mongodb-client';
+const ObjectId = require('mongoose').Types.ObjectId;
+
+function isValidObjectId(id) {
+	if (Types.ObjectId.isValid(id)) {
+		if ((String)(new Types.ObjectId(id)) === id)
+			return true;
+		return false;
+	}
+	return false;
 }
 
-export async function getAvailableQuests() {
+export async function updateQuest(body: UpdateQuestBody) {
+	if (!body.wallet || !body.message) {
+		return {
+			success: false,
+			error: 'Invalid wallet or message'
+		}
+	}
+
+	const blockhash = body.blockhash;
+	const message = body.message;
+
+	let messageResult = false;
+	let action = 'admin-update-quest';
+	let data = {
+		form: body.form,
+		wallet: body.wallet,
+	};
+
+	let walletJSON = await Functions.getWalletJSON(body.wallet);
+	if (!walletJSON.roles.includes("ADMIN")) {
+		return {
+			success: false,
+			error: "You don't have access to this feature"
+		};
+	}
+
+
+	if (!blockhash) {
+		messageResult = await Functions.verifyMessage(walletJSON, action, data, message);
+	} else {
+		messageResult = await Functions.verifyTransaction(walletJSON, action, data, message, blockhash);
+	}
+
+	if (!messageResult) {
+		console.log('Verification Failed');
+		return {
+			success: false,
+			error: 'Verification Failed'
+		}
+	}
+
+
+	if (!body.form._id) {
+		console.log("generating new id");
+		body.form._id = ObjectId();
+	}
+	try {
+		await Models.QuestDefinition.findOneAndUpdate({ _id: body.form._id }, body.form, { upsert: true });
+	} catch (e) {
+		console.log(e);
+
+		return {
+			success: false,
+			error: 'Creating Raffle Failed'
+		};
+	}
+
+	return {
+		success: true,
+		id: body.form._id
+	}
+}
+
+export async function getAvailableQuests(includeDisabled) {
 	const timestamp = Constants.getTimestamp();
 
-	let quests = await Models.QuestDefinition.find({
-		enabled: true,
-		$and:[
-			{$or: [{enabledFrom: {$exists: false}}, {enabledFrom: {$lte: timestamp}}]},
-			{$or: [{enabledTo: {$exists: false}}, {enabledTo: {$gte: timestamp}}]}
-		]
-	})
+	let filters = undefined;
+	if (!includeDisabled) {
+		filters = {};
+		filters["enabled"] = true;
+		filters["$and"] =
+			[
+				{ $or: [{ enabledFrom: { $exists: false } }, { enabledFrom: { $lte: timestamp } }] },
+				{ $or: [{ enabledTo: { $exists: false } }, { enabledTo: { $gte: timestamp } }] }
+			]
+
+	} else {
+	}
+
+	let quests: Array<any> = [];
+	if (filters) {
+		quests = await Models.QuestDefinition.find(filters);
+	} else {
+		quests = await Models.QuestDefinition.find();
+
+	}
 
 	return {
 		success: true,
@@ -31,7 +112,7 @@ export async function getAvailableQuests() {
 }
 
 export async function getQuest(questID) {
-	if (isValidObjectId(questID) === false){
+	if (isValidObjectId(questID) === false) {
 		return {
 			success: false,
 			error: 'Invalid Request'
@@ -77,11 +158,11 @@ export async function getStartedQuests(wallet, questID) {
 	let results = [];
 
 	let quests = await Models.QuestExecution.find({
-		walletID: walletJSON._id, 
-		questID: questID, 
-		cancelStatus: {$exists: false},
-		revertStatus: {$exists: false},
-		$or:[{
+		walletID: walletJSON._id,
+		questID: questID,
+		cancelStatus: { $exists: false },
+		revertStatus: { $exists: false },
+		$or: [{
 			status: 'STARTED',
 		},
 		{
@@ -92,7 +173,7 @@ export async function getStartedQuests(wallet, questID) {
 	for (let i in quests) {
 		let activeQuest = quests[i].toJSON();
 		activeQuest.questFinish = activeQuest.finishTimestamp;
-		activeQuest.participantTokens = await Models.Token.find({_id: {$in: quests[i].participants}});
+		activeQuest.participantTokens = await Models.Token.find({ _id: { $in: quests[i].participants } });
 
 		results.push(activeQuest);
 	}
@@ -152,7 +233,7 @@ export async function startQuest(wallet, questID, participants, message, blockha
 			error: 'Verification Failed'
 		}
 	}
-	
+
 	const timestamp = Constants.getTimestamp();
 
 	let tokensInWallet = await Functions.getTokensInWallet(wallet);
@@ -164,7 +245,7 @@ export async function startQuest(wallet, questID, participants, message, blockha
 
 	for (let i in participants) {
 		if (grimTokens[participants[i]] && grimTokens[participants[i]] === Constants.IN_WALLET) {
-			let token = await Models.Token.findOne({walletID: walletJSON._id, mint: participants[i]});
+			let token = await Models.Token.findOne({ walletID: walletJSON._id, mint: participants[i] });
 			participantTokens.push(token._id);
 
 			await Functions.Questing.generateStamina(token._id, Constants.ONE_COOLDOWN_PERIOD, walletCooldownRate, Constants.COOLDOWN_UNITS);
@@ -174,9 +255,9 @@ export async function startQuest(wallet, questID, participants, message, blockha
 	let questExecution: HydratedDocument<IQuestExecution>;
 	let result = {
 		success: true,
-        quest:null,
-        questFinish:null,
-        participantTokens:null,
+		quest: null,
+		questFinish: null,
+		participantTokens: null,
 	};
 
 	try {
@@ -187,7 +268,7 @@ export async function startQuest(wallet, questID, participants, message, blockha
 		questExecution = await Models.QuestExecution.findById(questExecution._id);
 		result.quest = questExecution;
 		result.questFinish = result.quest.finishTimestamp;
-		result.participantTokens = await Models.Token.find({_id: {$in: questExecution.participants}});
+		result.participantTokens = await Models.Token.find({ _id: { $in: questExecution.participants } });
 	} catch (e) {
 		console.log(e);
 
@@ -202,7 +283,7 @@ export async function startQuest(wallet, questID, participants, message, blockha
 	return result;
 }
 
-export async function finishQuest(wallet, questID, message, blockhash) {
+export async function finishQuest(wallet, questID, endStepId, message, blockhash) {
 	if (!wallet || !questID || !message) {
 		return {
 			success: false,
@@ -222,7 +303,7 @@ export async function finishQuest(wallet, questID, message, blockhash) {
 	}
 
 	let questExecution = await Models.QuestExecution.findById(questID);
-	if(!questExecution){
+	if (!questExecution) {
 		console.log('Quest ID not found!');
 		return {
 			success: false,
@@ -252,7 +333,8 @@ export async function finishQuest(wallet, questID, message, blockhash) {
 	let action = 'finish-quest';
 	let data = {
 		wallet: wallet,
-		quest: questID
+		quest: questID,
+		endStepId: endStepId
 	};
 
 	if (!blockhash) {
@@ -271,7 +353,7 @@ export async function finishQuest(wallet, questID, message, blockhash) {
 
 	let tokensInWallet = await Functions.getTokensInWallet(wallet);
 	let grimTokens = await Functions.getGrimsFromTokens(wallet, tokensInWallet);
-	
+
 	let participants = questExecution.participants;
 	let participantTokens = [];
 
@@ -286,19 +368,19 @@ export async function finishQuest(wallet, questID, message, blockhash) {
 	let questCompletion = {};
 	let result = {
 		success: true,
-        quest:null,
-        participantTokens:null,
+		quest: null,
+		participantTokens: null,
 
 	};
 
 	try {
-		questCompletion = await Functions.Questing.createFinish(questExecution._id, participantTokens);
+		questCompletion = await Functions.Questing.createFinish(questExecution._id, endStepId, participantTokens);
 		let success = await Functions.Questing.handleQuestFinishing(questCompletion, quest);
 		if (!success) throw new Error('Failed quest finishing: ' + quest._id);
 
 		questExecution = await Models.QuestExecution.findById(questExecution._id);
 		result.quest = questExecution;
-		result.participantTokens = await Models.Token.find({_id: {$in: questExecution.participants}});
+		result.participantTokens = await Models.Token.find({ _id: { $in: questExecution.participants } });
 	} catch (e) {
 		console.log(e);
 
@@ -366,8 +448,8 @@ export async function claimRewards(wallet, questID, message, blockhash) {
 
 	let result = {
 		success: true,
-        quest:null,
-        participantTokens:null,
+		quest: null,
+		participantTokens: null,
 	};
 
 	try {
@@ -390,8 +472,8 @@ export async function claimRewards(wallet, questID, message, blockhash) {
 
 		questExecution = await Models.QuestExecution.findById(questExecution._id);
 		result.quest = questExecution;
-		result.participantTokens = await Models.Token.find({_id: {$in: questExecution.participants}});
-	} catch(e) {
+		result.participantTokens = await Models.Token.find({ _id: { $in: questExecution.participants } });
+	} catch (e) {
 		console.log(e);
 
 		return {

@@ -6,6 +6,7 @@ import * as staking from './staking-mechanics';
 import * as questing from './questing';
 import * as auction from './auction-house';
 import * as ballotBox from './ballot-box';
+import * as items from './items';
 import Functions from './functions/index';
 import { bidOnAuction, createAuction, deleteAuction, getActiveAuctions, getAuctionInfo, getPastAuctions } from './functions/astra-auction-house';
 import cors from 'cors';
@@ -80,7 +81,7 @@ app.get("/verify-astra", async (req, res) => {
 });
 
 app.get("/quests", async (req, res) => {
-  let result = await questing.getAvailableQuests();
+  let result = await questing.getAvailableQuests(req.query.includeDisabled);
   res.json(result);
 });
 
@@ -95,7 +96,7 @@ app.post("/quests/start", async (req, res) => {
 });
 
 app.post("/quests/finish", async (req, res) => {
-  let result = await questing.finishQuest(req.body.wallet, req.body.quest, req.body.message, req.body.bh);
+  let result = await questing.finishQuest(req.body.wallet, req.body.quest, req.body.endStepId, req.body.message, req.body.bh);
   res.json(result);
 });
 
@@ -115,12 +116,26 @@ app.get("/quests/start", async (req, res) => {
 });
 
 app.get("/quests/finish", async (req, res) => {
-  let result = await questing.finishQuest(req.query.wallet, req.query.quest, req.query.message, req.query.bh);
+  let result = await questing.finishQuest(req.query.wallet, req.query.quest, req.query.endStepId, req.query.message, req.query.bh);
   res.json(result);
 });
 
 app.get("/quests/claim", async (req, res) => {
   let result = await questing.claimRewards(req.query.wallet, req.query.quest, req.query.message, req.query.bh);
+  res.json(result);
+});
+
+app.post("/admin/quest/update", async (req, res) => {
+  let result = await questing.updateQuest(req.body);
+  res.json(result);
+});
+
+app.post("/admin/item/create", async (req, res) => {
+  let result = await items.createItem(req.body);
+  res.json(result);
+});
+app.post("/admin/item/all", async (req, res) => {
+  let result = await items.getAllItems();
   res.json(result);
 });
 

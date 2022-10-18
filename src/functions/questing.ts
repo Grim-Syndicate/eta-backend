@@ -23,9 +23,10 @@ export async function createStart(walletID, questID, participants, stamina, dura
 	return questExecution;
 }
 
-export async function createFinish(questID, participants) {
+export async function createFinish(questID, endStepId, participants) {
 	let quest = {
 		questExecutionID: questID,
+		endStepId: endStepId,
 		participants: participants,
 		status: 'INITIAL',
 		timestamp: Constants.getTimestamp()
@@ -350,8 +351,12 @@ export async function pendingQuestCompletionForParticipant(quest, questCompletio
 	let timestamp = Constants.getTimestamp();
 	let rewards = [];
 
-	for (let i in quest.rewards) {
-		let rewardDefinition = quest.rewards[i];
+
+	const completedStep = quest.questScript.find(a => a.id == questCompletion.endStepId || a._id == questCompletion.endStepId);
+
+	for (let i in completedStep.rewards) {
+		let rewardDefinition = completedStep.rewards[i];
+
 		let reward = { participant: participant, type: rewardDefinition.type, amount: undefined };
 
 		if (rewardDefinition.rangeMin && rewardDefinition.rangeMax) {
