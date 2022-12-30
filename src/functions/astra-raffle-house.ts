@@ -34,6 +34,23 @@ export async function createTransaction(walletID, raffleID, tickets, totalPrice)
 	return raffleTransaction;
 }
 
+export async function createPayment(walletID, raffleID, entries, payment) {
+	let data = {
+		walletID: walletID,
+		raffleID: raffleID,
+		entries: entries,
+		payment: payment,
+		status: 'INITIAL',
+		timestamp: Constants.getTimestamp()
+	};
+
+	let rafflePayment = await Models.RafflePayment.create(data);
+
+	console.log('Raffle Payment initiated: ', rafflePayment._id.toString());
+
+	return rafflePayment;
+}
+
 export function getNINStatus(type, status, index = null) {
 	const progressStatuses = ['INITIAL', 'PENDING', 'SETTLING', 'SETTLED'];
 	const cancelStatuses = ['CANCEL_INITIAL', 'CANCEL_PENDING', 'CANCELED'];
@@ -159,6 +176,30 @@ export async function handleTicketsBuying(raffleTransaction) {
 	return true;
 }
 
+export async function handleRafflePayment(rafflePayment) {
+	let success = await setStatus(Models.RafflePayment, rafflePayment._id, 'PENDING');
+	if (!success) return false;
+
+	success = await addAstraToWallet(rafflePayment);
+	if (!success) return false;
+
+	success = await setStatus(Models.RafflePayment, rafflePayment._id, 'SETTLING');
+
+	success = await settleAstraPayment(rafflePayment);
+	if (!success) return false;
+
+	success = await setStatus(Models.RafflePayment, rafflePayment._id, 'SETTLED');
+	if (!success) return false;
+
+	await Models.RaffleCampaign.updateOne({
+		_id: rafflePayment.raffleID,
+	}, {
+		beneficiaryPaymentID: rafflePayment._id,
+	});
+
+	return true;
+}
+
 export async function deductAstraFromWallet(raffleTransaction) {
 	let status = await Models.Wallet.updateOne({
 		_id: raffleTransaction.walletID,
@@ -179,6 +220,24 @@ export async function deductAstraFromWallet(raffleTransaction) {
 	}
 
 	console.log('Deducted Astra from Wallet: ', raffleTransaction._id.toString());
+
+	return true;
+}
+
+export async function addAstraToWallet(rafflePayment) {
+	let status = await Models.Wallet.updateOne({
+		_id: rafflePayment.walletID,
+		pendingTransactions: {$nin: {transaction: rafflePayment._id, amount: rafflePayment.payment}}
+	}, {
+		$inc: {pendingBalance: rafflePayment.payment},
+		$push: {pendingTransactions: {transaction: rafflePayment._id, amount: rafflePayment.payment}}
+	});
+
+	if (await isTransactionFailed(status, rafflePayment)) {
+		return false;
+	}
+
+	console.log('Added Astra to Wallet: ', rafflePayment._id.toString());
 
 	return true;
 }
@@ -226,6 +285,24 @@ export async function settleAstraBalance(raffleTransaction) {
 	return true;
 }
 
+export async function settleAstraPayment(rafflePayment) {
+	let status = await Models.Wallet.updateOne({
+		_id: rafflePayment.walletID,
+		pendingTransactions: { $in: { transaction: rafflePayment._id, amount: rafflePayment.payment } },
+	}, {
+		$inc: { pointsBalance: rafflePayment.payment, pendingBalance: -rafflePayment.payment },
+		$pull: { pendingTransactions: { transaction: rafflePayment._id, amount: rafflePayment.payment } }
+	});
+
+	if (await isPaymentFailed(status, rafflePayment)) {
+		return false;
+	}
+
+	console.log('Settling Astra Payment from Wallet: ', rafflePayment._id.toString());
+
+	return true;
+}
+
 export async function settleRaffleEntries(raffleTransaction) {
 	let status = await Models.RaffleEntries.updateOne({
 		walletID: raffleTransaction.walletID,
@@ -250,6 +327,18 @@ export async function isTransactionFailed(status, raffleTransaction) {
 
 	if (failed) {
 		let status = await revertTransaction(raffleTransaction._id, true);
+		console.log('REVERTED', status);
+	}
+
+	return failed;
+}
+
+
+export async function isPaymentFailed(status, rafflePayment) {
+	let failed = (status && status.acknowledged && status.modifiedCount == 0);
+
+	if (failed) {
+		let status = await revertPayment(rafflePayment._id, true);
 		console.log('REVERTED', status);
 	}
 
@@ -309,6 +398,58 @@ export async function revertTransaction(transactionID, forceRevert) {
 	return false;
 }
 
+export async function revertPayment(paymentID, forceRevert) {
+	try {
+		let rafflePayment = await Models.RafflePayment.findOneAndUpdate(
+			{
+				_id: paymentID,
+				status: { $ne: "SETTLED" },
+				timestamp:
+					forceRevert
+						? { $exists: true }
+						: { $lte: Constants.getTimestamp() - Constants.CANCEL_TRANSACTIONS_INTERVAL } // not changed for more than 5 min
+			}, {
+			$set: {
+				cancelStatus: "CANCEL_INITIAL",
+				timestamp: Constants.getTimestamp()
+			}
+		}, {
+			new: true
+		}
+		);
+
+		if (!rafflePayment) return false;
+
+		let status = rafflePayment.status;
+
+		rafflePayment = await setCancelStatus(Models.RafflePayment, paymentID, "CANCEL_PENDING");
+
+		if (status === "SETTLING") {
+			rafflePayment = await setRevertStatus(Models.RafflePayment, paymentID, "REVERT_SETTLING");
+
+			revertAstraPaymentSettle(rafflePayment);
+
+			rafflePayment = await setStatus(Models.RaffleTransaction, paymentID, "PENDING");
+			status = "PENDING";
+		}
+
+		if (status === "PENDING") {
+			rafflePayment = await setRevertStatus(Models.RafflePayment, paymentID, "REVERT_PENDING");
+			
+			revertAstraAddToDestination(rafflePayment);
+		}
+
+		rafflePayment = await setRevertStatus(Models.RafflePayment, paymentID, "REVERTED");
+		rafflePayment = await setCancelStatus(Models.RafflePayment, paymentID, "CANCELED");
+
+		return rafflePayment.cancelStatus === "CANCELED";
+	} catch (e) {
+		console.log('error reverting', e);
+	}
+
+	return false;
+}
+
 export async function revertAstraSettle(raffleTransaction) {
 	console.log('Revert Wallet Astra Balance Settled');
 	await Models.Wallet.updateOne({
@@ -322,6 +463,19 @@ export async function revertAstraSettle(raffleTransaction) {
 	return true;
 }
 
+export async function revertAstraPaymentSettle(rafflePayment) {
+	console.log('Revert Wallet Astra Payment Settled');
+	await Models.Wallet.updateOne({
+		_id: rafflePayment.walletID,
+		pendingTransactions: { $nin: { transaction: rafflePayment.id, amount: rafflePayment.payment } },
+	}, {
+		$inc: { pointsBalance: -rafflePayment.payment, pendingBalance: rafflePayment.payment },
+		$push: { pendingTransactions: { transaction: rafflePayment.id, amount: rafflePayment.payment } }
+	});
+
+	return true;
+}
+
 export async function revertAstraDeductFromSource(raffleTransaction) {
 	console.log('Revert Wallet Astra Balance Pending');
 	await Models.Wallet.updateOne({
@@ -330,6 +484,19 @@ export async function revertAstraDeductFromSource(raffleTransaction) {
 	}, {
 		$inc: { pendingBalance: raffleTransaction.totalPrice },
 		$pull: { pendingTransactions: { transaction: raffleTransaction._id, amount: -raffleTransaction.totalPrice } }
+	});
+
+	return true;
+}
+
+export async function revertAstraAddToDestination(rafflePayment) {
+	console.log('Revert Wallet Astra Payment');
+	await Models.Wallet.updateOne({
+		_id: rafflePayment.walletID,
+		pendingTransactions: { $in: { transaction: rafflePayment._id, amount: -rafflePayment.payment } }
+	}, {
+		$inc: { pendingBalance: rafflePayment.payment },
+		$pull: { pendingTransactions: { transaction: rafflePayment._id, amount: -rafflePayment.payment } }
 	});
 
 	return true;
@@ -384,7 +551,7 @@ function shuffleArray(array) {
 	}
 }
 
-async function getRaffleEntries(raffleID) {
+export async function getRaffleEntries(raffleID) {
 	const raffleEntries = await Models.RaffleEntries.aggregate([
 		{
 			$match: {
@@ -452,13 +619,15 @@ async function pickWinner(entries) {
 	throw 'No valid winner'
 }
 
-export async function getRaffleWinners(raffleID, winnersCount = 1, uniqueWinners = true): Promise<{error: string, winners: Array<string>}> {
+export async function getRaffleWinners(raffleID, winnersCount = 1, uniqueWinners = true): Promise<{error: string, winners: Array<string>, totalEntries:number}> {
 	let entries = await getRaffleEntries(raffleID)
+	const totalEntries = entries.length
 
 	if (entries.length === 0) {
 		return {
 			error: "This raffle has no entries!",
-			winners: []
+			winners: [],
+			totalEntries: 0,
 		}
 	}
 
@@ -482,7 +651,8 @@ export async function getRaffleWinners(raffleID, winnersCount = 1, uniqueWinners
 
 	return {
 		error: "",
-		winners: winners
+		winners: winners,
+		totalEntries: totalEntries,
 	}
 	/*
 	fs.writeFileSync(

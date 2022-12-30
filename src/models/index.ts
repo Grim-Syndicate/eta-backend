@@ -11,6 +11,7 @@ import Stamina from './stamina';
 import RaffleCampaign from './raffle-campaign';
 import RaffleEntries from './raffle-entries';
 import RaffleTransaction from './raffle-transaction';
+import RafflePayment from './raffle-payment';
 import AstraAuction from './auction';
 import Proposal from './proposal';
 import ProposalVote from './proposal-vote';
@@ -29,6 +30,7 @@ export default {
   RaffleCampaign: RaffleCampaign,
   RaffleEntries: RaffleEntries,
   RaffleTransaction: RaffleTransaction,
+  RafflePayment: RafflePayment,
   JSONConfigs: JSONConfigs,
   AstraAuction: AstraAuction,
   Proposal: Proposal,
