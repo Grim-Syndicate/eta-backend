@@ -276,6 +276,7 @@ export async function handleQuestFinishing(questCompletion, quest) {
 	success = await setStatus(Models.QuestExecution, questCompletion.questExecutionID, 'COMPLETE');
 	if (!success) return false;
 	success = await setStatus(Models.QuestCompletion, questCompletion._id, 'COMPLETE');
+
 	if (!success) return false;
 
 	return true;
@@ -353,6 +354,12 @@ export async function pendingQuestCompletionForParticipant(quest, questCompletio
 
 
 	const completedStep = quest.questScript.find(a => a.id == questCompletion.endStepId || a._id == questCompletion.endStepId);
+	console.log("pendingQuestCompletionForParticipant");
+	console.log("completed step ", completedStep);
+	console.log("questCompletion", questCompletion);
+	console.log("quest", quest);
+
+
 
 	for (let i in completedStep.rewards) {
 		let rewardDefinition = completedStep.rewards[i];
@@ -375,22 +382,20 @@ export async function pendingQuestCompletionForParticipant(quest, questCompletio
 }
 
 export async function pendingQuestCompletion(quest, questCompletion, rewards) {
-	if (rewards.length > 0) {
-		let status = await Models.QuestExecution.updateOne({
-			_id: questCompletion.questExecutionID,
-			"pendingRewards.questCompletion": { $ne: questCompletion._id },
-		}, {
-			$push: {
-				pendingRewards: {
-					questCompletion: questCompletion._id,
-					rewards: rewards
-				}
+	let status = await Models.QuestExecution.updateOne({
+		_id: questCompletion.questExecutionID,
+		"pendingRewards.questCompletion": { $ne: questCompletion._id },
+	}, {
+		$push: {
+			pendingRewards: {
+				questCompletion: questCompletion._id,
+				rewards: rewards
 			}
-		});
-
-		if (await isQuestExecutionFailed(status, questCompletion)) {
-			return false;
 		}
+	});
+
+	if (await isQuestExecutionFailed(status, questCompletion)) {
+		return false;
 	}
 
 	return true;
@@ -413,6 +418,10 @@ export async function revertPendingQuestCompletion(quest, questCompletion, rewar
 }
 
 export async function settleQuestCompletion(quest, questCompletion, rewards) {
+	if (rewards.length === 0) {
+		console.log("Instantly settle quest completion because there are no rewards to claim");
+		return true;
+	}
 	let claimableRewards = {};
 	for (let i in rewards) {
 		let reward = rewards[i];
@@ -423,15 +432,16 @@ export async function settleQuestCompletion(quest, questCompletion, rewards) {
 
 		claimableRewards[reward.type] = claimableRewards[reward.type] + reward.amount;
 	}
-	console.log(claimableRewards)
 
+	/*let qetest = await Models.QuestExecution.findOne({
+		_id: questCompletion.questExecutionID,
+		"pendingRewards.questCompletion": { $eq: questCompletion._id },
+	});
+
+	console.log("qetest", qetest);*/
 	let status = await Models.QuestExecution.updateOne({
 		_id: questCompletion.questExecutionID,
 		"pendingRewards.questCompletion": { $eq: questCompletion._id },
-		$or: [
-			{ rewards: { $exists: false } },
-			{ "rewards.0": { $exists: false } }
-		]
 	}, {
 		rewards: rewards,
 		claimableRewards: claimableRewards,
