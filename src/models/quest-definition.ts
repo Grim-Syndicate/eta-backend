@@ -51,6 +51,7 @@ const questScriptSchema = new mongoose.Schema({
       goToStepId: String
     }],
     rewards: [stepRewardsSchema],
+    isPositiveOutcome: Boolean
   }, {
   _id : false,
   versionKey: false
