@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 let Schema = mongoose.Schema;
-
+/*
 const rewardsSchema = new mongoose.Schema({
     type: String,
     chance: Number,
@@ -11,14 +11,47 @@ const rewardsSchema = new mongoose.Schema({
   _id : false,
   versionKey: false
 });
+*/
+const stepRewardsSchema = new mongoose.Schema({
+  chance: Number,
+  rangeMin: Number,
+  rangeMax: Number,
+  name: String,
+  type: String,
+  image: String
+}, {
+_id : false,
+versionKey: false
+});
+
+const questEditorSchema = new mongoose.Schema({
+  position: {
+    x: Number,
+    y: Number
+  },
+}, {
+_id : false,
+versionKey: false
+});
 
 const questScriptSchema = new mongoose.Schema({
+    id: String,
+    editor: questEditorSchema,
+    progressType: String,
     actor: String,
     line: String,
+    duration: Number,
     options: [{
       chance: Number,
-      take: Number
-    }]
+      take: Number,
+      goToStepId: String
+    }],
+    userChoices: [{
+      text: String,
+      goToStepId: String
+    }],
+    rewards: [stepRewardsSchema],
+    isPositiveOutcome: Boolean
   }, {
   _id : false,
   versionKey: false
@@ -46,7 +79,6 @@ let questDefinitionSchema = new Schema({
   stamina: Number,
   duration: Number,
   questScript: [questScriptSchema],
-  rewards: [rewardsSchema],
 }, {versionKey: false});
 
 const QuestDefinition = mongoose.model('QuestDefinition', questDefinitionSchema);

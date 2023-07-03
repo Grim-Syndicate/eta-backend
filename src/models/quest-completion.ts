@@ -8,6 +8,10 @@ let questCompletionSchema = new Schema({
     ref: 'QuestExecution',
     index: true
   },
+  endStepId: {
+    type: String,
+    indx: true
+  },
   participants: [{
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Token'
