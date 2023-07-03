@@ -19,6 +19,8 @@ export interface IRaffleCampaign {
   walletTickets?: number
   totalTickets?: number
   ended?:boolean
+  beneficiary?:string
+  beneficiaryPaymentID?:Types.ObjectId
 }
 
 let raffleCampaignSchema = new Schema<IRaffleCampaign>({
@@ -45,7 +47,9 @@ let raffleCampaignSchema = new Schema<IRaffleCampaign>({
   limit: Number,
   uniqueWinners: Boolean,
   winnerCount: Number,
-  winners:[String]
+  winners:[String],
+  beneficiary: String,
+  beneficiaryPaymentID: Types.ObjectId,
 }, {versionKey: false});
 
 const RaffleCampaign = model<IRaffleCampaign>('RaffleCampaign', raffleCampaignSchema);

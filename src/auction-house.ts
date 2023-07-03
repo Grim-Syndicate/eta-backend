@@ -2,7 +2,7 @@ import Models from './models/index';
 import Constants from './constants';
 import Functions from './functions/index';
 import { CreateRaffleBody, UpdateRaffleWinnersBody } from 'models/auction-house';
-import { getRaffleWinners } from './functions/astra-raffle-house';
+import { getRaffleEntries, getRaffleWinners } from './functions/astra-raffle-house';
 import { IRaffleCampaign } from 'models/raffle-campaign';
 const ObjectId = require('mongoose').Types.ObjectId;
 
@@ -108,11 +108,31 @@ export async function updateRaffleWinners(body: UpdateRaffleWinnersBody) {
 		}
 	}
 
+	//If winners have been drawn already, just return them
 	if (raffle.winners && raffle.winners.length > 0) {
-		
+		//But first check if beneficiary has been paid already
+		let totalPayment = -1
+
+		if(raffle.beneficiary && !raffle.beneficiaryPaymentID){
+			let raffleEntries = await getRaffleEntries(body.id)
+			const totalEntries = raffleEntries.length
+			totalPayment = totalEntries * raffle.ticketPrice
+
+			try {
+				console.log('Winners drawn but beneficiary not paid. Do it now.')
+				await payRaffleBeneficiary(raffle, totalEntries, totalPayment)
+			} catch (e) {
+				return {
+					success: false,
+					error: 'Paying beneficiary Failed'
+				};
+			}
+		}
+
 		return {
 			success: true,
-			winners: raffle.winners
+			winners: raffle.winners,
+			beneficiaryPaid: totalPayment,
 		}
 	}
 	
@@ -133,10 +153,8 @@ export async function updateRaffleWinners(body: UpdateRaffleWinnersBody) {
 		}
     }
 
-
 	const raffleResult = await getRaffleWinners(body.id, raffle.winnerCount, raffle.uniqueWinners);
 	if (raffleResult.error) {
-		
 		return {
 			success: false,
 			error: raffleResult.error
@@ -148,9 +166,41 @@ export async function updateRaffleWinners(body: UpdateRaffleWinnersBody) {
 			winners: raffleResult.winners
 		}
 	);
+
+	//if there is a beneficiary, pay it
+	const totalPayment = raffleResult.totalEntries * raffle.ticketPrice
+
+	if(raffle.beneficiary){
+		if(raffle.beneficiaryPaymentID){
+			console.log('Raffle beneficiary already paid, paymentID: ' + raffle.beneficiaryPaymentID)
+		} else {
+			try {
+				await payRaffleBeneficiary(raffle, raffleResult.totalEntries, totalPayment)
+			} catch (e) {
+				return {
+					success: false,
+					error: 'Paying beneficiary Failed'
+				};
+			}
+		}
+	}
+
 	return {
 		success: true,
-		winners: raffleResult.winners
+		winners: raffleResult.winners,
+		beneficiaryPaid: raffle.beneficiary ? totalPayment : -1
+	}
+}
+
+export async function payRaffleBeneficiary(raffle:IRaffleCampaign, entries:number, payment:number) {
+	try {
+		let beneficiaryWallet = await Functions.getWalletJSON(raffle.beneficiary);
+		let rafflePayment = await Functions.AuctionHouse.createPayment(beneficiaryWallet._id, raffle._id, entries, payment);
+		let success = await Functions.AuctionHouse.handleRafflePayment(rafflePayment);
+		if (!success) throw new Error('Failed paying beneficiary: ' + rafflePayment._id);
+	} catch (e) {
+		console.log(e);
+		throw new Error('Failed paying beneficiary: ' + raffle._id);
 	}
 }
 

@@ -1,3 +1,6 @@
+If using Digital Ocean, use a NodeJS droplet. It already comes with things setup
+
+
 Use nodejs user to avoid permission issues `su nodejs`
 
 create ssh key if none exist: `ssh-keygen -t ed25519 -C "name@email.com"` and put it as deploy key
