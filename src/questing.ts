@@ -6,7 +6,6 @@ import { IQuestExecution } from './models/quest-execution';
 import { CreateAuctionBody } from 'models/auction-house';
 import { UpdateQuestBody } from 'models/quests';
 
-import mongoose from './mongodb-client';
 const ObjectId = require('mongoose').Types.ObjectId;
 
 function isValidObjectId(id) {
