@@ -3,7 +3,6 @@ import Models from './models/index';
 import Constants from './constants';
 import Functions from './functions/index';
 import { IQuestExecution } from './models/quest-execution';
-import { CreateAuctionBody } from 'models/auction-house';
 import { UpdateQuestBody } from 'models/quests';
 
 const ObjectId = require('mongoose').Types.ObjectId;
